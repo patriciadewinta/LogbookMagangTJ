@@ -1,68 +1,146 @@
-import Image from "next/image";
+import { ViewTransition } from "react";
+import Link from "next/link";
+import Calendar from "@/components/calendar";
+import Sidebar from "@/components/sidebar";
 
-export default function Home() {
+const STEP_LABELS = [
+  ["Submit", "Laporan"],
+  ["Persetujuan", "Pembimbing"],
+  ["Persetujuan", "Kadep/Kadiv"],
+  ["Terkirim", "ke OD"],
+];
+
+function ProgressCard({
+  title,
+  value,
+  percent,
+}: {
+  title: string;
+  value: string;
+  percent: number;
+}) {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="rounded-[10px] border border-[#d9d9d9] bg-white p-4 dark:border-white/10 dark:bg-black sm:p-5">
+      <p className="text-[14px] font-semibold text-black dark:text-white">{title}</p>
+      <p className="mt-1 text-[24px] font-extrabold leading-tight text-black dark:text-white">
+        {value}
+      </p>
+      <p className="mt-3 text-[14px] text-black dark:text-white">{percent}% Kehadiran</p>
+      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#e0e0e0] dark:bg-white/20">
+        <div
+          className="h-full rounded-full bg-[#0043ce]"
+          style={{ width: `${percent}%` }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+      </div>
+    </div>
+  );
+}
+
+function Stepper() {
+  return (
+    <div className="mt-5 rounded-[10px] border border-[#d9d9d9] bg-white px-4 py-4 dark:border-white/10 dark:bg-black sm:px-6 sm:py-5">
+      <p className="text-[14px] font-semibold text-black dark:text-white">
+        Progres pengumpulan logbook
+      </p>
+      <div className="mt-5 overflow-x-auto">
+      <div className="flex min-w-[440px] items-center justify-between px-4 sm:px-8">
+        {STEP_LABELS.map((label, i) => {
+          const done = i < 2;
+          const current = i === 2;
+          const lineColor =
+            i === 0 || i === 1 ? "bg-[#0043ce]" : "bg-[#c6c6c6] dark:bg-white/20";
+          return (
+            <div key={i} className="contents">
+              {i > 0 && (
+                <div className={`h-px flex-1 self-start translate-y-[14px] ${lineColor}`} />
+              )}
+              <div className="flex w-[110px] shrink-0 flex-col items-center gap-2">
+                <div
+                  className={`grid size-[30px] place-items-center rounded-full text-[14px] font-semibold ${
+                    done
+                      ? "bg-[#0043ce]"
+                      : current
+                        ? "border-2 border-[#0043ce] bg-white text-black dark:bg-black dark:text-white"
+                        : "border-2 border-[#c6c6c6] bg-white text-black dark:border-white/20 dark:bg-black dark:text-white"
+                  }`}
+                >
+                  {done ? (
+                    <img src="/assets/step-check.svg" alt="" className="size-[26px]" />
+                  ) : (
+                    i + 1
+                  )}
+                </div>
+                <p className="text-center text-[10px] font-medium leading-[16px] tracking-[0.5px] text-[#6f6f6f] dark:text-white/60">
+                  {label[0]}
+                  <br />
+                  {label[1]}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      </div>
+    </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <div className="flex min-h-screen bg-[#edf7fe] dark:bg-[#262f49]">
+      <Sidebar />
+
+      <main className="min-w-0 flex-1 px-4 py-7 pt-20 sm:px-8 lg:pt-7">
+        <div className="mt-4 flex flex-col items-stretch gap-6 lg:flex-row lg:gap-8">
+          <div className="flex flex-1 flex-col justify-between">
+            <h1 className="text-[26px] leading-[1.2] text-black dark:text-white sm:text-[40px] sm:leading-[1.15]">
+              Selamat pagi/siang/malam,
+              <br />
+              <em className="font-bold italic">Lausa!</em>
+            </h1>
+            <ViewTransition
+              name="main-card"
+              default="block"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+            <Link
+              href="/input-logbook"
+              className="flex items-center gap-4 rounded-[10px] border border-[#d9d9d9] bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:gap-5 sm:p-5 dark:border-white/10 dark:bg-black"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <div className="grid size-11 shrink-0 place-items-center rounded-[10px] bg-[#deedf8] sm:size-12">
+                <img src="/assets/pdf-icon.png" alt="" className="size-9 object-contain sm:size-10" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[17px] font-semibold leading-snug text-black dark:text-white sm:text-[20px]">
+                  Submit laporan magang
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-black/30 dark:text-white/30 sm:text-[14px]">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-1.5 shrink-0 rounded-full bg-current" />
+                    Belum submit laporan
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-1.5 shrink-0 rounded-full bg-current" />
+                    Terakhir: 4 Agustus 2026
+                  </span>
+                </div>
+              </div>
+              <img
+                src="/assets/forward-button.png"
+                alt=""
+                className="ml-auto size-10 shrink-0 object-contain sm:size-12"
+              />
+            </Link>
+            </ViewTransition>
+          </div>
+          <Calendar />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <ProgressCard title="Kehadiran di Bulan Ini" value="18 dari 20 hari" percent={90} />
+          <ProgressCard title="Progress Magang" value="Bulan ke-3 dari 6 bulan" percent={90} />
         </div>
+
+        <Stepper />
       </main>
     </div>
   );
