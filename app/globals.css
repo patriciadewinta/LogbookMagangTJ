@@ -78,33 +78,72 @@ body {
   pointer-events: none;
 }
 
-::view-transition-old(root) {
-  animation: page-out 0.22s ease-in both;
+/* Transisi pindah halaman — default: konten lama cepat memudar,
+   konten baru naik perlahan (fade + rise). */
+::view-transition-old(.page-exit) {
+  animation: 150ms ease-in both fade reverse;
 }
 
-::view-transition-new(root) {
-  animation: page-in 0.32s ease-out both;
+::view-transition-new(.page-enter) {
+  animation:
+    260ms ease-out 90ms both fade,
+    340ms ease-out both rise;
 }
 
-@keyframes page-out {
+/* Navigasi directional (nav-forward / nav-back): slide horizontal,
+   arah ikut hierarki navigasi. */
+::view-transition-old(.nav-forward) {
+  --slide-offset: -60px;
+  animation:
+    150ms ease-in both fade reverse,
+    380ms ease-in-out both slide reverse;
+}
+
+::view-transition-new(.nav-forward) {
+  --slide-offset: 60px;
+  animation:
+    220ms ease-out 150ms both fade,
+    380ms ease-in-out both slide;
+}
+
+::view-transition-old(.nav-back) {
+  --slide-offset: 60px;
+  animation:
+    150ms ease-in both fade reverse,
+    380ms ease-in-out both slide reverse;
+}
+
+::view-transition-new(.nav-back) {
+  --slide-offset: -60px;
+  animation:
+    220ms ease-out 150ms both fade,
+    380ms ease-in-out both slide;
+}
+
+@keyframes fade {
   from {
-    opacity: 1;
-    transform: scale(1);
+    opacity: 0;
   }
   to {
-    opacity: 0;
-    transform: scale(0.97);
+    opacity: 1;
   }
 }
 
-@keyframes page-in {
+@keyframes rise {
   from {
-    opacity: 0;
-    transform: scale(1.03);
+    translate: 0 16px;
   }
   to {
-    opacity: 1;
-    transform: scale(1);
+    translate: 0 0;
+  }
+}
+
+@keyframes slide {
+  from {
+    translate: var(--slide-offset) 0;
+  }
+  to {
+    translate: 0 0;
   }
 }
 
