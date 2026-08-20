@@ -1,15 +1,16 @@
-"use client";
-
+import Link from "next/link";
 import { ViewTransition } from "react";
-import { useRouter } from "next/navigation";
 import Toast from "@/components/toast";
+import PageTransition from "@/components/page-transition";
+import { requireUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-function DoneUploadRow({ icon, fileName, hint }: { icon: "pdf" | "debit"; fileName: string; hint: string }) {
+function DoneUploadRow({ fileName, hint }: { fileName: string; hint: string }) {
   return (
     <div className="flex w-full items-center gap-5 rounded-[10px] border border-dashed border-black/60 px-5 py-4 dark:border-white/60">
       <div className="grid size-12 shrink-0 place-items-center rounded-[10px] bg-[#deedf8]">
         <img
-          src={icon === "pdf" ? "/assets/pdf-icon.png" : "/assets/debit-card-icon.png"}
+          src="/assets/pdf-icon.png"
           alt=""
           className="size-10 object-contain"
         />
@@ -19,29 +20,38 @@ function DoneUploadRow({ icon, fileName, hint }: { icon: "pdf" | "debit"; fileNa
         <p className="truncate text-[16px] text-black/30 dark:text-white/30">{hint}</p>
       </div>
       <span className="shrink-0 rounded-[10px] bg-[#deedf8] px-4 py-1.5 text-[16px] font-light text-[#001192] dark:bg-white/10 dark:text-[#4258ff]">
-        Pilih File
+        Terkirim
       </span>
     </div>
   );
 }
 
-export default function DoneSubmitPage() {
-  const router = useRouter();
+export default async function DoneSubmitPage() {
+  const user = await requireUser();
+
+  const submission = await prisma.logbookSubmission.findFirst({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    select: { logbookFilePath: true },
+  });
+
+  const fileName = submission?.logbookFilePath.split("/").pop() ?? "logbook_magang.pdf";
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#edf7fe] px-4 py-16 dark:bg-[#262f49]">
       <Toast />
 
+      <PageTransition>
       <div className="absolute left-[clamp(16px,4vw,102px)] top-5 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => router.push("/")}
+        <Link
+          href="/"
+          transitionTypes={["nav-back"]}
           aria-label="Kembali"
           title="Kembali"
-          className="grid size-12 cursor-pointer place-items-center rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+          className="grid size-12 place-items-center rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10"
         >
           <img src="/assets/back-arrow.png" alt="" className="size-10 object-contain" />
-        </button>
+        </Link>
         <ViewTransition name="logo-tj" default="block">
           <img
             src="/assets/logo-tj.png"
@@ -62,10 +72,10 @@ export default function DoneSubmitPage() {
       >
       <div className="w-full max-w-[1026px] rounded-[10px] border border-[#d9d9d9] bg-white p-6 shadow-[0px_0px_48px_0px_rgba(0,0,0,0.35)] sm:p-10 dark:border-white/10 dark:bg-black">
         <h1 className="text-[28px] font-bold leading-tight text-black dark:text-white sm:text-[40px]">
-          Upload your logbook!
+          Logbook terkirim!
         </h1>
         <p className="mt-2 max-w-[720px] text-[18px] font-light leading-snug text-black dark:text-white sm:text-[20px]">
-          Lengkapi data dan unggah logbook serta KTM untuk melengkapi report magang
+          Laporan magangmu sudah masuk. Pantau status persetujuan pada beranda atau history.
         </p>
 
         <div className="mt-8 flex flex-col gap-6">
@@ -75,36 +85,23 @@ export default function DoneSubmitPage() {
             </p>
             <div className="mt-2">
               <DoneUploadRow
-                icon="pdf"
-                fileName="logbook_agustus_2026.pdf"
-                hint="Format PDF, XLSX, atau CSV, maks. 5MB"
-              />
-            </div>
-          </div>
-
-          <div>
-            <p className="text-[24px] font-semibold text-black dark:text-white">
-              Kartu Tanda Mahasiswa
-            </p>
-            <div className="mt-2">
-              <DoneUploadRow
-                icon="debit"
-                fileName="ktm_lausa.jpg"
-                hint="Format PDF, JPG, atau PNG, maks. 5MB"
+                fileName={fileName}
+                hint="Format PDF, XLSX, atau CSV, maks. 1MB"
               />
             </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => router.push("/")}
-          className="mt-8 block w-full cursor-pointer rounded-[10px] bg-[#001192] py-3 text-center text-[20px] font-bold text-white transition-opacity hover:opacity-90 dark:bg-[#4258ff]"
+        <Link
+          href="/"
+          transitionTypes={["nav-back"]}
+          className="mt-8 block w-full rounded-[10px] bg-[#001192] py-3 text-center text-[20px] font-bold text-white transition-opacity hover:opacity-90 dark:bg-[#4258ff]"
         >
-          Upload Berkas
-        </button>
+          Kembali ke Beranda
+        </Link>
       </div>
       </ViewTransition>
+      </PageTransition>
     </div>
   );
 }

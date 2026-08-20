@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id          String   @id @db.Uuid
+  fullName    String   @default("") @map("full_name")
+  university  String?
+  domisili    String?
+  posisi      String?
+  phone       String?
+  startDate   String? @map("start_date")
+  endDate     String? @map("end_date")
+  ktmFilePath String? @map("ktm_file_path")
+  avatarPath  String? @map("avatar_path")
+  role        String   @default("mahasiswa")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([role])
+  @@map("profiles")
+}
+
+model Approver {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  email     String
+  role      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("approvers")
+}
+
+model LogbookSubmission {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  logbookFilePath  String   @map("logbook_file_path")
+  pembimbingId     String?  @map("pembimbing_id") @db.Uuid
+  kadepId          String?  @map("kadep_id") @db.Uuid
+  kadivId          String?  @map("kadiv_id") @db.Uuid
+  pembimbingName   String?  @map("pembimbing_name")
+  pembimbingEmail  String?  @map("pembimbing_email")
+  kadepName        String?  @map("kadep_name")
+  kadepEmail       String?  @map("kadep_email")
+  kadivName        String?  @map("kadiv_name")
+  kadivEmail       String?  @map("kadiv_email")
+  status           String   @default("submitted")
+  rejectionReason  String?  @map("rejection_reason")
+  paymentStatus    String?  @map("payment_status")
+  periodYear       Int?     @map("period_year")
+  periodMonth      Int?     @map("period_month")
+  hadirCount       Int?     @map("hadir_count")
+  cutiCount        Int?     @map("cuti_count")
+  cutiReason       String?  @map("cuti_reason")
+  signedFilePath   String?  @map("signed_file_path")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([userId, periodYear, periodMonth])
+  @@map("logbook_submissions")
+}
+
+model Holiday {
+  date    String  @id // YYYY-MM-DD
+  name    String
+  type    String // 'libur_nasional' | 'cuti_bersama'
+  isLibur Boolean @default(true) @map("is_libur")
+  year    Int
+
+  @@map("holidays")
+}
