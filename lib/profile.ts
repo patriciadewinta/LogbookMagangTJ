@@ -13,6 +13,7 @@ export const getProfileForUser = cache(async (userId: string) => {
       posisi: true,
       phone: true,
       avatarPath: true,
+      emailNotif: true,
       role: true,
     },
   });

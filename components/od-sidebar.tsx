@@ -11,6 +11,6 @@ const navItems = [
 export default async function OdSidebar() {
   const user = await getSidebarUser();
   return (
-    <SidebarShell navItems={navItems} activeClass="bg-[#5A69D3]" user={user} />
+    <SidebarShell navItems={navItems} activeClass="bg-[#97A3FF]/60" user={user} />
   );
 }

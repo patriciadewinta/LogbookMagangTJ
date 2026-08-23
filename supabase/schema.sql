@@ -31,6 +31,8 @@ grant execute on function public.is_od() to anon, authenticated;
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   full_name text not null default '',
+  email text,
+  email_notif boolean not null default true,
   university text,
   domisili text,
   posisi text,
@@ -44,6 +46,8 @@ create table if not exists public.profiles (
 );
 
 -- Kolom untuk tabel profiles yang sudah dibuat sebelum perubahan ini.
+alter table public.profiles add column if not exists email text;
+alter table public.profiles add column if not exists email_notif boolean not null default true;
 alter table public.profiles add column if not exists domisili text;
 alter table public.profiles add column if not exists start_date text;
 alter table public.profiles add column if not exists end_date text;
@@ -122,6 +126,8 @@ create table if not exists public.logbook_submissions (
   ),
   rejection_reason text,
   payment_status text check (payment_status in ('paid', 'unpaid')),
+  payment_amount int,
+  paid_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -168,6 +174,8 @@ alter table public.logbook_submissions add column if not exists hadir_count int;
 alter table public.logbook_submissions add column if not exists cuti_count int;
 alter table public.logbook_submissions add column if not exists cuti_reason text;
 alter table public.logbook_submissions add column if not exists signed_file_path text;
+alter table public.logbook_submissions add column if not exists payment_amount int;
+alter table public.logbook_submissions add column if not exists paid_at timestamptz;
 
 -- Index untuk query history & dashboard per-user (filter user_id + sort created_at).
 create index if not exists logbook_submissions_user_id_created_at_idx
@@ -198,6 +206,45 @@ drop policy if exists "holidays_update_od" on public.holidays;
 create policy "holidays_update_od"
   on public.holidays for update
   using (public.is_od());
+
+-- ============================================================
+-- 3c) PASSWORD_SET_TOKENS — token sementara untuk link set password anak magang
+-- Dibuat saat OD menambahkan anak magang; dipakai sekali lalu used_at terisi.
+-- ============================================================
+create table if not exists public.password_set_tokens (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  token text unique not null,
+  name text,
+  university text,
+  posisi text,
+  domisili text,
+  start_date text,
+  end_date text,
+  phone text,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists password_set_tokens_token_idx
+  on public.password_set_tokens(token);
+
+alter table public.password_set_tokens enable row level security;
+
+-- Validasi token dari halaman set-password (tanpa login) — SELECT terbuka.
+drop policy if exists "password_set_tokens_select_all" on public.password_set_tokens;
+create policy "password_set_tokens_select_all"
+  on public.password_set_tokens for select
+  to anon, authenticated
+  using (true);
+
+-- Hanya OD yang bisa membuat token.
+drop policy if exists "password_set_tokens_insert_od" on public.password_set_tokens;
+create policy "password_set_tokens_insert_od"
+  on public.password_set_tokens for insert
+  to authenticated
+  with check (public.is_od());
 
 -- ============================================================
 -- 4) STORAGE BUCKETS (private) + policy
@@ -318,3 +365,32 @@ insert into public.approvers (name, email, role) values
   ('Fajar Nugroho',  'fajar.nugroho@perusahaan.com',  'kadiv'),
   ('Nina Marlina',   'nina.marlina@perusahaan.com',   'kadiv')
 on conflict do nothing;
+
+-- ============================================================
+-- 3d) APP_SETTINGS — konfigurasi global (gaji anak magang / hari)
+-- Satu baris (id = 1). Diubah dari halaman Settings role OD.
+-- ============================================================
+create table if not exists public.app_settings (
+  id int primary key default 1 check (id = 1),
+  salary_per_day int not null default 100000,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.app_settings (id, salary_per_day)
+values (1, 100000)
+on conflict (id) do nothing;
+
+alter table public.app_settings enable row level security;
+
+drop policy if exists "app_settings_select_od" on public.app_settings;
+create policy "app_settings_select_od"
+  on public.app_settings for select
+  to authenticated
+  using (public.is_od());
+
+drop policy if exists "app_settings_update_od" on public.app_settings;
+create policy "app_settings_update_od"
+  on public.app_settings for update
+  to authenticated
+  using (public.is_od())
+  with check (public.is_od());

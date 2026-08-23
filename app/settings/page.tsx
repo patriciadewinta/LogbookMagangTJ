@@ -33,6 +33,7 @@ export default async function SettingsPage() {
             posisi: profile?.posisi ?? "",
             phone: profile?.phone ?? "",
             avatarPath: profile?.avatarPath ?? null,
+            emailNotif: profile?.emailNotif ?? true,
           }}
         />
         </PageTransition>

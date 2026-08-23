@@ -281,6 +281,7 @@ export async function updateProfile(formData: FormData) {
   const domisili = String(formData.get("domisili") ?? "").trim();
   const posisi = String(formData.get("posisi") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
+  const emailNotif = formData.get("email_notif") === "on";
 
   if (!fullName) return { error: "Nama tidak boleh kosong." };
   if (!domisili || !(PROVINCES as readonly string[]).includes(domisili)) {
@@ -296,6 +297,7 @@ export async function updateProfile(formData: FormData) {
         domisili,
         posisi: posisi || null,
         phone: phone || null,
+        emailNotif,
       },
     });
   } catch (e) {
@@ -430,6 +432,7 @@ export async function updateIntern(
   const posisi = String(formData.get("posisi") ?? "").trim();
   const startDate = String(formData.get("start_date") ?? "").trim();
   const endDate = String(formData.get("end_date") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
   if (!id) return { error: "Data anak magang tidak ditemukan." };
   if (!fullName) return { error: "Nama tidak boleh kosong." };
   if (domisili && !(PROVINCES as readonly string[]).includes(domisili)) {
@@ -446,6 +449,7 @@ export async function updateIntern(
         posisi: posisi || null,
         startDate: startDate || null,
         endDate: endDate || null,
+        phone: phone || null,
       },
     });
   } catch (e) {
@@ -519,6 +523,66 @@ export async function deleteSubmission(formData: FormData) {
   }
 
   revalidatePath("/od/history");
+  return { error: null };
+}
+
+export async function markPaid(formData: FormData) {
+  await requireOD();
+  const ids = String(formData.get("ids") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (ids.length === 0) return { error: "Pilih minimal satu laporan." };
+
+  try {
+    const setting = await prisma.appSetting.findUnique({ where: { id: 1 } });
+    const rate = setting?.salaryPerDay ?? 100000;
+
+    const rows = await prisma.logbookSubmission.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, hadirCount: true },
+    });
+
+    await prisma.$transaction(
+      rows.map((r) =>
+        prisma.logbookSubmission.update({
+          where: { id: r.id },
+          data: {
+            paymentStatus: "paid",
+            paymentAmount: (r.hadirCount ?? 0) * rate,
+            paidAt: new Date(),
+          },
+        })
+      )
+    );
+  } catch (e) {
+    return {
+      error: `Gagal memperbarui status: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+  revalidatePath("/od/history");
+  return { error: null };
+}
+
+export async function updateSalaryPerDay(formData: FormData) {
+  await requireOD();
+  const value = Number(formData.get("salaryPerDay") ?? "");
+  if (!Number.isInteger(value) || value <= 0) {
+    return { error: "Nominal gaji per hari tidak valid." };
+  }
+
+  try {
+    await prisma.appSetting.upsert({
+      where: { id: 1 },
+      update: { salaryPerDay: value },
+      create: { id: 1, salaryPerDay: value },
+    });
+  } catch (e) {
+    return {
+      error: `Gagal menyimpan pengaturan: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+  revalidatePath("/od/settings");
   return { error: null };
 }
 

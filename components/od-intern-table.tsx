@@ -8,11 +8,13 @@ import { PROVINCES } from "@/lib/domisili";
 export type InternRow = {
   id: string;
   fullName: string;
+  email: string | null;
   university: string | null;
   domisili: string | null;
   posisi: string | null;
   startDate: string | null;
   endDate: string | null;
+  phone: string | null;
 };
 
 const MONTHS = [
@@ -104,7 +106,7 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
         {interns.length > 0 ? (
           <table className="w-full min-w-[900px] border-collapse text-left">
             <thead>
-              <tr className="bg-[#374ADF]">
+              <tr className="bg-[#374ADF]/[0.07] dark:bg-[#374ADF]/[0.07]">
                 {[
                   "Nama",
                   "Asal Domisili",
@@ -116,7 +118,7 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                 ].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-[14px] font-semibold text-white"
+                    className="px-4 py-3 text-[14px] font-semibold text-[#333333] dark:text-white/80"
                   >
                     {h}
                   </th>
@@ -230,74 +232,104 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
             <form
               key={editing.id}
               onSubmit={handleFormSubmit}
-              className="flex flex-col gap-4"
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2"
             >
-              <div>
-                <label htmlFor="f-name" className={labelClass}>
-                  Nama Lengkap
-                </label>
-                <input
-                  id="f-name"
-                  name="full_name"
-                  type="text"
-                  defaultValue={editing.fullName}
-                  required
-                  placeholder="Nama lengkap anak magang"
-                  className={inputClass}
-                />
-              </div>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label htmlFor="f-name" className={labelClass}>
+                    Nama Lengkap
+                  </label>
+                  <input
+                    id="f-name"
+                    name="full_name"
+                    type="text"
+                    defaultValue={editing.fullName}
+                    required
+                    placeholder="Nama lengkap anak magang"
+                    className={inputClass}
+                  />
+                </div>
 
-              <div>
-                <label htmlFor="f-domisili" className={labelClass}>
-                  Asal Domisili (Provinsi)
-                </label>
-                <select
-                  id="f-domisili"
-                  name="domisili"
-                  defaultValue={editing.domisili ?? ""}
-                  required
-                  className={inputClass}
-                >
-                  <option value="" disabled>
-                    Pilih Provinsi
-                  </option>
-                  {PROVINCES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
+                <div>
+                  <label htmlFor="f-domisili" className={labelClass}>
+                    Asal Daerah
+                  </label>
+                  <select
+                    id="f-domisili"
+                    name="domisili"
+                    defaultValue={editing.domisili ?? ""}
+                    required
+                    className={inputClass}
+                  >
+                    <option value="" disabled>
+                      Pilih Provinsi
                     </option>
-                  ))}
-                </select>
+                    {PROVINCES.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="f-university" className={labelClass}>
+                    Universitas/Instansi
+                  </label>
+                  <input
+                    id="f-university"
+                    name="university"
+                    type="text"
+                    defaultValue={editing.university ?? ""}
+                    placeholder="Contoh: Universitas Indonesia"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="f-email" className={labelClass}>
+                    Email
+                  </label>
+                  <input
+                    id="f-email"
+                    name="email"
+                    type="email"
+                    defaultValue={editing.email ?? ""}
+                    readOnly
+                    className={`${inputClass} cursor-not-allowed bg-[#f3f4f6] dark:bg-white/10`}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="f-phone" className={labelClass}>
+                    Nomor Telepon
+                  </label>
+                  <input
+                    id="f-phone"
+                    name="phone"
+                    type="tel"
+                    defaultValue={editing.phone ?? ""}
+                    placeholder="Contoh: 0812-3456-7890"
+                    className={inputClass}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="f-university" className={labelClass}>
-                  Universitas/Instansi
-                </label>
-                <input
-                  id="f-university"
-                  name="university"
-                  type="text"
-                  defaultValue={editing.university ?? ""}
-                  placeholder="Contoh: Universitas Indonesia"
-                  className={inputClass}
-                />
-              </div>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label htmlFor="f-posisi" className={labelClass}>
+                    Posisi
+                  </label>
+                  <input
+                    id="f-posisi"
+                    name="posisi"
+                    type="text"
+                    defaultValue={editing.posisi ?? ""}
+                    placeholder="Contoh: Data Analyst"
+                    className={inputClass}
+                  />
+                </div>
 
-              <div>
-                <label htmlFor="f-posisi" className={labelClass}>
-                  Posisi
-                </label>
-                <input
-                  id="f-posisi"
-                  name="posisi"
-                  type="text"
-                  defaultValue={editing.posisi ?? ""}
-                  placeholder="Contoh: Data Analyst"
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="f-start" className={labelClass}>
                     Tanggal Mulai Magang
@@ -310,6 +342,7 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                     className={inputClass}
                   />
                 </div>
+
                 <div>
                   <label htmlFor="f-end" className={labelClass}>
                     Tanggal Selesai Magang
@@ -324,13 +357,15 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={busy}
-                className="mt-2 rounded-[10px] bg-[#001192] py-3 text-[16px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:bg-[#4258ff]"
-              >
-                {busy ? "Menyimpan..." : "Simpan Perubahan"}
-              </button>
+              <div className="sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="mt-2 w-full rounded-[10px] bg-[#5E46FF] py-3 text-[16px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                >
+                  {busy ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
             </form>
           </div>
         </div>
