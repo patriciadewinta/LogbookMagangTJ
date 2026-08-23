@@ -32,7 +32,11 @@ export default async function DoneSubmitPage() {
   const submission = await prisma.logbookSubmission.findFirst({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
-    select: { logbookFilePath: true },
+    select: {
+      logbookFilePath: true,
+      cutiCount: true,
+      cutiReason: true,
+    },
   });
 
   const fileName = submission?.logbookFilePath.split("/").pop() ?? "logbook_magang.pdf";
@@ -90,6 +94,43 @@ export default async function DoneSubmitPage() {
               />
             </div>
           </div>
+
+          {submission?.cutiCount != null && submission.cutiCount > 0 && (
+            <div>
+              <p className="text-[24px] font-semibold text-black dark:text-white">
+                Cuti/Izin
+              </p>
+              <div className="mt-2 flex w-full items-center gap-5 rounded-[10px] border border-dashed border-black/60 px-5 py-4 dark:border-white/60">
+                <div className="grid size-12 shrink-0 place-items-center rounded-[10px] bg-[#deedf8]">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="size-6 text-[#001192] dark:text-[#4258ff]"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[20px] text-black dark:text-white">
+                    {submission.cutiCount} hari cuti/izin
+                  </p>
+                  <p className="truncate text-[16px] text-black/30 dark:text-white/30">
+                    {submission.cutiReason || "Tanpa keterangan"}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-[10px] bg-[#deedf8] px-4 py-1.5 text-[16px] font-light text-[#001192] dark:bg-white/10 dark:text-[#4258ff]">
+                  Tercatat
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <Link

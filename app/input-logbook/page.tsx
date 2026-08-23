@@ -30,7 +30,7 @@ function UploadBox({
       <p className="text-[20px] font-semibold text-black dark:text-white">{label}</p>
       <div
         onClick={() => inputRef.current?.click()}
-        className="mt-2 flex w-full max-w-full cursor-pointer items-center gap-4 overflow-hidden rounded-[10px] border border-dashed border-[#d9d9d9] bg-white px-3 py-4 text-left transition-colors hover:border-[#001192] dark:border-white/25 dark:bg-black dark:hover:border-[#4258ff]"
+        className="mt-2 flex h-[76px] w-full max-w-full cursor-pointer items-center gap-4 overflow-hidden rounded-[10px] border border-dashed border-[#d9d9d9] bg-white px-3 py-4 text-left transition-colors hover:border-[#001192] dark:border-white/25 dark:bg-black dark:hover:border-[#4258ff]"
       >
         <div className="grid size-11 shrink-0 place-items-center rounded-[10px] bg-[#deedf8]">
           <img
@@ -40,7 +40,7 @@ function UploadBox({
           />
         </div>
         <div className="min-w-0 flex-1 overflow-hidden">
-          <p className="truncate whitespace-nowrap text-[18px] text-black dark:text-white">
+          <p className="truncate whitespace-nowrap text-[18px] text-black dark:text-white" title={file?.name}>
             {file?.name || "Klik atau seret file di sini"}
           </p>
           <p className="truncate whitespace-nowrap text-[14px] text-black/30 dark:text-white/30">{hint}</p>

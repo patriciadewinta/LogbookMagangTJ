@@ -12,6 +12,7 @@ export type SettingsInitial = {
   posisi: string;
   phone: string;
   avatarPath: string | null;
+  emailNotif: boolean;
 };
 
 function SettingField({
@@ -51,7 +52,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
   const [university, setUniversity] = useState(initial.university);
   const [domisili, setDomisili] = useState(initial.domisili);
   const [phone, setPhone] = useState(initial.phone);
-  const [notif, setNotif] = useState(true);
+  const [notif, setNotif] = useState(initial.emailNotif);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [avatarState, avatarAction, avatarPending] = useActionState(uploadAvatar, {
@@ -127,6 +128,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-5">
+        <input type="hidden" name="email_notif" value={notif ? "on" : ""} />
         {error && (
           <p className="rounded-[10px] border border-red-300 bg-red-50 px-3 py-2 text-[15px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
             {error}
@@ -144,7 +146,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
             <SettingField label="Universitas/Instansi" name="university" value={university} onChange={setUniversity} placeholder="Universitas/Instansi" />
             <div>
               <p className="text-[20px] font-semibold text-black dark:text-white">
-                Asal Domisili (Provinsi)
+                Asal Daerah
               </p>
               <div className="relative mt-2">
                 <select

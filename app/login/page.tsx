@@ -108,17 +108,6 @@ export default function LoginPage() {
               >
                 {pending ? "Masuk..." : "Login"}
               </button>
-
-              <p className="mt-5 text-center text-[17px] font-light text-black dark:text-white">
-                Belum punya akun?{" "}
-                <Link
-                  href="/register"
-                  transitionTypes={["nav-forward"]}
-                  className="font-medium text-[#001192] dark:text-[#4258ff]"
-                >
-                  Daftar
-                </Link>
-              </p>
             </form>
           </div>
         </div>

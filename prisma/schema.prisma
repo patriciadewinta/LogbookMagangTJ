@@ -11,6 +11,8 @@ datasource db {
 model Profile {
   id          String   @id @db.Uuid
   fullName    String   @default("") @map("full_name")
+  email       String?
+  emailNotif  Boolean  @default(true) @map("email_notif")
   university  String?
   domisili    String?
   posisi      String?
@@ -52,6 +54,8 @@ model LogbookSubmission {
   status           String   @default("submitted")
   rejectionReason  String?  @map("rejection_reason")
   paymentStatus    String?  @map("payment_status")
+  paymentAmount    Int?     @map("payment_amount")
+  paidAt           DateTime? @map("paid_at") @db.Timestamptz(6)
   periodYear       Int?     @map("period_year")
   periodMonth      Int?     @map("period_month")
   hadirCount       Int?     @map("hadir_count")
@@ -75,4 +79,31 @@ model Holiday {
   year    Int
 
   @@map("holidays")
+}
+
+model PasswordSetToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String
+  token     String   @unique
+  name      String?
+  university String?
+  posisi    String?
+  domisili  String?
+  startDate String? @map("start_date")
+  endDate   String? @map("end_date")
+  phone     String?
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([token])
+  @@map("password_set_tokens")
+}
+
+model AppSetting {
+  id           Int      @id @default(1)
+  salaryPerDay Int      @default(100000) @map("salary_per_day")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_settings")
 }
