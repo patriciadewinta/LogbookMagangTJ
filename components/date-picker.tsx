@@ -62,6 +62,8 @@ export default function DatePicker({
   className = "",
   disabled = false,
   ariaLabel = "Pilih tanggal",
+  disabledDates,
+  disableWeekends = false,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -71,6 +73,10 @@ export default function DatePicker({
   className?: string;
   disabled?: boolean;
   ariaLabel?: string;
+  // Tanggal ISO (YYYY-MM-DD) yang tidak boleh dipilih (mis. hari libur).
+  disabledDates?: string[];
+  // Disable Sabtu/Minggu.
+  disableWeekends?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -142,6 +148,7 @@ export default function DatePicker({
   const minDate = toDate(min ?? "");
   const maxDate = toDate(max ?? "");
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const disabledSet = useMemo(() => new Set(disabledDates ?? []), [disabledDates]);
 
   const cellDate = (cell: { day: number; offset: -1 | 0 | 1 }) => {
     let y = viewYear;
@@ -165,6 +172,8 @@ export default function DatePicker({
   const disabledDate = (d: Date) => {
     if (minDate && d < new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())) return true;
     if (maxDate && d > new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate())) return true;
+    if (disableWeekends && (d.getDay() === 0 || d.getDay() === 6)) return true;
+    if (disabledSet.has(toISO(d))) return true;
     return false;
   };
 
@@ -185,6 +194,12 @@ export default function DatePicker({
     let target = base;
     if (minDate && base < new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())) target = minDate;
     if (maxDate && base > new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate())) target = maxDate;
+    // "Sekarang" jatuh di tanggal libur → mundur ke hari kerja terdekat.
+    let guard = 0;
+    while (disabledDate(target) && guard++ < 31) {
+      target = new Date(target.getFullYear(), target.getMonth(), target.getDate() - 1);
+    }
+    if (disabledDate(target)) return;
     setViewYear(target.getFullYear());
     setViewMonth(target.getMonth());
     onChange(toISO(target));
