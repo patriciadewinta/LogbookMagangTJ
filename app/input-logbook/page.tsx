@@ -7,6 +7,7 @@ import {
   deleteDailyActivity,
   getApprovers,
   getDailyActivities,
+  getHolidayDates,
   saveDailyActivities,
   submitLogbook,
 } from "@/app/actions";
@@ -107,6 +108,7 @@ export default function InputLogbookPage() {
   const [hasCuti, setHasCuti] = useState(false);
   const [cutiCount, setCutiCount] = useState("1");
   const [cutiReason, setCutiReason] = useState("");
+  const [holidayDates, setHolidayDates] = useState<string[]>([]);
 
   const rebuildRows = useCallback((list: Draft[], p: string) => {
     const saved = list
@@ -125,6 +127,9 @@ export default function InputLogbookPage() {
     });
     getDailyActivities().then((res) => {
       setDrafts(res.activities);
+    });
+    getHolidayDates().then((res) => {
+      setHolidayDates(res.dates);
     });
   }, []);
 
@@ -196,6 +201,16 @@ export default function InputLogbookPage() {
     }
     if (today && filledRows.some((r) => r.tanggal > today)) {
       setError("Tidak bisa mengisi kegiatan untuk tanggal yang belum lewat.");
+      return false;
+    }
+    const holidaySet = new Set(holidayDates);
+    if (
+      filledRows.some((r) => {
+        const dow = new Date(`${r.tanggal}T00:00:00`).getDay();
+        return dow === 0 || dow === 6 || holidaySet.has(r.tanggal);
+      })
+    ) {
+      setError("Ada tanggal yang jatuh di hari libur (weekend/libur nasional) — tidak perlu diisi kegiatan.");
       return false;
     }
     const dates = new Set(filledRows.map((r) => r.tanggal));
@@ -394,6 +409,8 @@ export default function InputLogbookPage() {
                             onChange={(v) => updateRow(r.key, { tanggal: v })}
                             ariaLabel={`Tanggal kegiatan baris ${i + 1}`}
                             className="w-[225px] shrink-0"
+                            disableWeekends
+                            disabledDates={holidayDates}
                           />
                           <span className="min-w-[90px] text-[14px] text-black/50 dark:text-white/50">
                             {hariLabel(r.tanggal)}

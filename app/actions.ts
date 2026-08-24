@@ -371,6 +371,17 @@ export async function getDailyActivities() {
   return { activities };
 }
 
+// Daftar tanggal hari libur (libur nasional + cuti bersama) untuk disable
+// tanggal di date picker kegiatan harian.
+export async function getHolidayDates() {
+  await requireUser();
+  const holidays = await prisma.holiday.findMany({
+    where: { isLibur: true },
+    select: { date: true },
+  });
+  return { dates: holidays.map((h) => h.date) };
+}
+
 export async function saveDailyActivities(formData: FormData) {
   const { user } = await requireUserClient();
 
@@ -397,6 +408,21 @@ export async function saveDailyActivities(formData: FormData) {
     byTanggal.set(tanggal, { tanggal, kegiatan });
   }
   const entries = [...byTanggal.values()];
+
+  // Weekend dan hari libur tidak boleh diisi kegiatan.
+  for (const e of entries) {
+    const dow = new Date(`${e.tanggal}T00:00:00`).getDay();
+    if (dow === 0 || dow === 6) {
+      return { error: `${e.tanggal} jatuh di akhir pekan — hari libur tidak perlu diisi kegiatan.` };
+    }
+  }
+  const libur = await prisma.holiday.findMany({
+    where: { date: { in: entries.map((e) => e.tanggal) }, isLibur: true },
+    select: { date: true },
+  });
+  if (libur.length > 0) {
+    return { error: `${libur[0].date} hari libur — tidak perlu diisi kegiatan.` };
+  }
 
   const dates = entries.map((e) => e.tanggal);
   const locked = await prisma.dailyActivity.findMany({
