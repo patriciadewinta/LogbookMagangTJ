@@ -2,13 +2,73 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export async function GET(request: NextRequest) {
+  try {
+    const token = request.nextUrl.searchParams.get("token");
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: "Token tidak ditemukan" },
+        { status: 400 }
+      );
+    }
+
+    const tokenData = await prisma.passwordSetToken.findUnique({
+      where: { token },
+    });
+
+    if (!tokenData) {
+      return NextResponse.json(
+        { success: false, error: "Token tidak valid" },
+        { status: 400 }
+      );
+    }
+
+    if (tokenData.usedAt) {
+      return NextResponse.json(
+        { success: false, error: "Token sudah digunakan" },
+        { status: 400 }
+      );
+    }
+
+    if (new Date(tokenData.expiresAt) < new Date()) {
+      return NextResponse.json(
+        { success: false, error: "Token telah kadaluarsa" },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      name: tokenData.name || "",
+      email: tokenData.email,
+    });
+  } catch (error) {
+    console.error("Error checking token:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Terjadi kesalahan",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { token, password } = await request.json();
+    const { token, password, nim } = await request.json();
 
     if (!token || !password) {
       return NextResponse.json(
         { success: false, error: "Token dan password wajib diisi" },
+        { status: 400 }
+      );
+    }
+
+    if (!nim || !String(nim).trim()) {
+      return NextResponse.json(
+        { success: false, error: "NIM wajib diisi" },
         { status: 400 }
       );
     }
@@ -98,6 +158,7 @@ export async function POST(request: NextRequest) {
         id: userId,
         fullName: tokenData.name || "",
         email: tokenData.email,
+        nim: String(nim).trim(),
         university: tokenData.university || null,
         posisi: tokenData.posisi || null,
         domisili: tokenData.domisili || null,
@@ -109,6 +170,7 @@ export async function POST(request: NextRequest) {
       update: {
         fullName: tokenData.name || "",
         email: tokenData.email,
+        nim: String(nim).trim(),
         university: tokenData.university || null,
         posisi: tokenData.posisi || null,
         domisili: tokenData.domisili || null,

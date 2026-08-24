@@ -5,6 +5,8 @@ const navItems = [
   { href: "/od", label: "Home", icon: "/assets/sidebar-home.png" },
   { href: "/od/history", label: "History Logbook", icon: "/assets/sidebar-history.png" },
   { href: "/od/list-anak", label: "List Anak Magang", icon: "/assets/sidebar-home.png" },
+  { href: "/od/approvers", label: "Data Approver", icon: "/assets/sidebar-history.png" },
+  { href: "/od/hari-libur", label: "Hari Libur", icon: "/assets/sidebar-settings.png" },
   { href: "/od/settings", label: "Settings", icon: "/assets/sidebar-settings.png" },
 ];
 

@@ -7,11 +7,13 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildLogbookNotification, sendLogbookEmail } from "@/lib/notify";
+import { buildTtdUrl, createApprovalToken } from "@/lib/approval";
+import { generateLogbookPdf } from "@/lib/pdf-logbook";
 import { PROVINCES } from "@/lib/domisili";
 import { ocrAttendanceCount } from "@/lib/ocr";
+import { clearWorkdayCache } from "@/lib/holidays";
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
-const ALLOWED_LOGBOOK_EXT = [".pdf", ".xlsx", ".csv"];
 const ALLOWED_KTM_EXT = [".pdf", ".jpg", ".jpeg", ".png"];
 const ALLOWED_AVATAR_EXT = [".jpg", ".jpeg", ".png", ".webp"];
 
@@ -139,13 +141,10 @@ function lastWeekdayOfMonth(year: number, month: number) {
 export async function submitLogbook(formData: FormData) {
   const { supabase, user } = await requireUserClient();
 
-  const logbookFile = formData.get("logbook_file") as File | null;
   const pembimbingId = String(formData.get("pembimbing_id") ?? "");
   const kadepId = String(formData.get("kadep_id") ?? "");
   const kadivId = String(formData.get("kadiv_id") ?? "");
 
-  const logbookErr = fileError(logbookFile ?? undefined, ALLOWED_LOGBOOK_EXT, "File logbook");
-  if (logbookErr) return { error: logbookErr };
   if (!pembimbingId || !kadepId || !kadivId) {
     return { error: "Pilih pembimbing, kepala departemen, dan kepala divisi." };
   }
@@ -174,12 +173,37 @@ export async function submitLogbook(formData: FormData) {
     }
   }
 
-  // Jumlah hari hadir dari manual input user.
-  const hadirCountStr = String(formData.get("hadir_count") ?? "").trim();
-  const hadirCount = hadirCountStr ? Math.floor(Number(hadirCountStr)) : null;
-  if (hadirCount === null || hadirCount < 0 || Number.isNaN(hadirCount)) {
-    return { error: "Jumlah hari hadir harus diisi dengan angka yang valid." };
+  // Daftar kegiatan harian (sumber generate PDF).
+  let entries: { tanggal: string; kegiatan: string }[] = [];
+  try {
+    const parsed = JSON.parse(String(formData.get("entries") ?? "[]"));
+    if (Array.isArray(parsed)) entries = parsed;
+  } catch {
+    // biarkan validasi di bawah yang menolak
   }
+  if (entries.length < 1 || entries.length > 31) {
+    return { error: "Isi kegiatan harian minimal 1 dan maksimal 31 entri." };
+  }
+  for (const e of entries) {
+    if (!e || typeof e.kegiatan !== "string" || !e.kegiatan.trim()) {
+      return { error: "Ada entri dengan kegiatan kosong." };
+    }
+    if (e.kegiatan.length > 500) {
+      return { error: "Kegiatan maksimal 500 karakter per entri." };
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(e.tanggal) || Number.isNaN(new Date(`${e.tanggal}T00:00:00`).getTime())) {
+      return { error: "Ada tanggal yang tidak valid." };
+    }
+    if (periodYear !== null) {
+      const [y, m] = e.tanggal.split("-").map(Number);
+      if (y !== periodYear || m !== periodMonth) {
+        return { error: "Semua tanggal kegiatan harus dalam bulan periode laporan." };
+      }
+    }
+  }
+
+  // Hari hadir = akumulasi baris kegiatan harian.
+  const hadirCount = entries.length;
 
   let approvers: { id: string; name: string; email: string; role: string }[];
   try {
@@ -201,18 +225,47 @@ export async function submitLogbook(formData: FormData) {
     return a ? { name: a.name, email: a.email } : { name: null, email: null };
   };
 
-  const filePath = `${user.id}/${Date.now()}-${safeName(logbookFile!.name)}`;
-  const { error: uploadError } = await supabase.storage
-    .from("logbooks")
-    .upload(filePath, logbookFile!, { contentType: logbookFile!.type });
-  if (uploadError) return { error: `Gagal unggah logbook: ${uploadError.message}` };
-
   const pembimbing = snapshot(pembimbingId);
   const kadep = snapshot(kadepId);
   const kadiv = snapshot(kadivId);
 
+  const profile = await prisma.profile.findUnique({ where: { id: user.id } });
+
+  // Generate PDF dari template dengan data form.
+  const now = new Date();
+  const genYear = periodYear ?? now.getFullYear();
+  const genMonth = periodMonth ?? now.getMonth() + 1;
+  let pdfBuffer: Buffer;
   try {
-    await prisma.logbookSubmission.create({
+    pdfBuffer = await generateLogbookPdf({
+      profile: {
+        fullName: profile?.fullName ?? null,
+        university: profile?.university ?? null,
+        posisi: profile?.posisi ?? null,
+        nim: profile?.nim ?? null,
+      },
+      entries,
+      periodYear: genYear,
+      periodMonth: genMonth,
+      pembimbing: pembimbing.name,
+      kadep: kadep.name,
+      kadiv: kadiv.name,
+    });
+  } catch (e) {
+    return {
+      error: `Gagal membuat PDF: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+
+  const filePath = `${user.id}/${Date.now()}-logbook.pdf`;
+  const { error: uploadError } = await supabase.storage
+    .from("logbooks")
+    .upload(filePath, pdfBuffer, { contentType: "application/pdf" });
+  if (uploadError) return { error: `Gagal unggah logbook: ${uploadError.message}` };
+
+  let submissionId: string;
+  try {
+    const submission = await prisma.logbookSubmission.create({
       data: {
         userId: user.id,
         logbookFilePath: filePath,
@@ -230,28 +283,33 @@ export async function submitLogbook(formData: FormData) {
         hadirCount,
         cutiCount,
         cutiReason,
+        entries,
         status: "submitted",
       },
     });
+    submissionId = submission.id;
   } catch (e) {
     return {
       error: `Gagal menyimpan laporan: ${e instanceof Error ? e.message : "unknown"}`,
     };
   }
 
-  // Email ke pembimbing dulu; kadep/kadiv dikirim saat approval berjalan.
-  const profile = await prisma.profile.findUnique({ where: { id: user.id } });
+  // Email ke pembimbing dulu; kadep/kadiv dikirim otomatis saat TTD berjalan.
+  const approvalToken = await createApprovalToken(
+    submissionId,
+    "pembimbing",
+    pembimbing.name ?? "",
+    pembimbing.email ?? ""
+  );
+
   const namaPengaju =
     profile?.fullName ||
     (user.user_metadata?.full_name as string) ||
     user.email?.split("@")[0] ||
     "Mahasiswa";
 
-  const now = new Date();
-  const tanggalLaporan = lastWeekdayOfMonth(
-    periodYear ?? now.getFullYear(),
-    periodMonth ?? now.getMonth() + 1
-  );
+  const tanggalLaporan = lastWeekdayOfMonth(genYear, genMonth);
+  const namaFile = `Logbook ${namaPengaju} ${genYear}-${String(genMonth).padStart(2, "0")}.pdf`;
 
   await sendLogbookEmail(
     buildLogbookNotification({
@@ -264,9 +322,10 @@ export async function submitLogbook(formData: FormData) {
       universitas: profile?.university ?? undefined,
       posisi: profile?.posisi ?? undefined,
       domisili: profile?.domisili ?? undefined,
-      namaFile: logbookFile!.name,
+      namaFile,
       filePath,
       tanggal: tanggalLaporan,
+      ctaUrl: buildTtdUrl(approvalToken.token),
     })
   );
 
@@ -561,6 +620,140 @@ export async function markPaid(formData: FormData) {
     };
   }
   revalidatePath("/od/history");
+  return { error: null };
+}
+
+const APPROVER_ROLES = ["pembimbing", "kadep", "kadiv"] as const;
+
+export async function saveApprover(
+  _prevState: { error: string | null },
+  formData: FormData
+): Promise<{ error: string | null }> {
+  await requireOD();
+  const id = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const divisi = String(formData.get("divisi") ?? "").trim();
+  const role = String(formData.get("role") ?? "").trim();
+
+  if (!name) return { error: "Nama tidak boleh kosong." };
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Email tidak valid." };
+  if (!(APPROVER_ROLES as readonly string[]).includes(role)) {
+    return { error: "Role tidak valid." };
+  }
+
+  const duplicate = await prisma.approver.findFirst({
+    where: { email, ...(id ? { id: { not: id } } : {}) },
+    select: { id: true },
+  });
+  if (duplicate) return { error: "Email sudah dipakai approver lain." };
+
+  try {
+    if (id) {
+      await prisma.approver.update({
+        where: { id },
+        data: { name, email, divisi: divisi || null, role },
+      });
+    } else {
+      await prisma.approver.create({
+        data: { name, email, divisi: divisi || null, role },
+      });
+    }
+  } catch (e) {
+    return {
+      error: `Gagal menyimpan data: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+
+  revalidatePath("/od/approvers");
+  return { error: null };
+}
+
+export async function deleteApprover(formData: FormData) {
+  await requireOD();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Data approver tidak ditemukan." };
+
+  try {
+    await prisma.approver.delete({ where: { id } });
+  } catch (e) {
+    return {
+      error: `Gagal menghapus data: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+
+  revalidatePath("/od/approvers");
+  return { error: null };
+}
+
+const HOLIDAY_TYPES = ["libur_nasional", "cuti_bersama"] as const;
+
+export async function saveHoliday(
+  _prevState: { error: string | null },
+  formData: FormData
+): Promise<{ error: string | null }> {
+  await requireOD();
+  const originalDate = String(formData.get("original_date") ?? "").trim();
+  const date = String(formData.get("date") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const type = String(formData.get("type") ?? "").trim();
+  const isLibur = formData.get("is_libur") === "on";
+
+  if (!name) return { error: "Nama hari libur tidak boleh kosong." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Tanggal tidak valid." };
+  if (!(HOLIDAY_TYPES as readonly string[]).includes(type)) {
+    return { error: "Tipe tidak valid." };
+  }
+
+  // Sabtu/Minggu pasti libur — tidak perlu didaftar manual.
+  const [y, m, d] = date.split("-").map(Number);
+  const dow = new Date(y, m - 1, d).getDay();
+  if (dow === 0 || dow === 6) {
+    return { error: "Tanggal jatuh di akhir pekan (Sabtu/Minggu) — tidak perlu ditambahkan." };
+  }
+
+  const duplicate = await prisma.holiday.findUnique({ where: { date } });
+  if (duplicate && duplicate.date !== originalDate) {
+    return { error: "Tanggal itu sudah terdaftar sebagai hari libur." };
+  }
+
+  try {
+    if (originalDate && originalDate !== date) {
+      await prisma.holiday.delete({ where: { date: originalDate } });
+    }
+    await prisma.holiday.upsert({
+      where: { date },
+      update: { name, type, isLibur: type === "libur_nasional" ? true : isLibur },
+      create: { date, name, type, isLibur: type === "libur_nasional" ? true : isLibur, year: y },
+    });
+  } catch (e) {
+    return {
+      error: `Gagal menyimpan hari libur: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+
+  clearWorkdayCache();
+  revalidatePath("/od/hari-libur");
+  revalidatePath("/");
+  return { error: null };
+}
+
+export async function deleteHoliday(formData: FormData) {
+  await requireOD();
+  const date = String(formData.get("date") ?? "");
+  if (!date) return { error: "Hari libur tidak ditemukan." };
+
+  try {
+    await prisma.holiday.delete({ where: { date } });
+  } catch (e) {
+    return {
+      error: `Gagal menghapus hari libur: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+
+  clearWorkdayCache();
+  revalidatePath("/od/hari-libur");
+  revalidatePath("/");
   return { error: null };
 }
 

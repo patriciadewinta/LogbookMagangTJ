@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DownloadButton from "@/components/download-button";
+import { useToast } from "@/components/toast-provider";
 import { markPaid } from "@/app/actions";
 
 type SubmissionRow = {
@@ -36,21 +37,19 @@ export default function HistoryContent({
   salaryPerDay: number;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [selectedCount, setSelectedCount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [payOpen, setPayOpen] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
   const [payBusy, setPayBusy] = useState(false);
 
   function openPayModal() {
-    setPayError(null);
     setPayOpen(true);
   }
 
   function closePayModal() {
     if (payBusy) return;
     setPayOpen(false);
-    setPayError(null);
   }
 
   async function handlePaySubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -59,12 +58,12 @@ export default function HistoryContent({
     const fd = new FormData(e.currentTarget);
     fd.set("ids", [...selectedIds].join(","));
     setPayBusy(true);
-    setPayError(null);
     const res = await markPaid(fd);
     setPayBusy(false);
     if (res?.error) {
-      setPayError(res.error);
+      toast.error(res.error);
     } else {
+      toast.success(`${selectedCount} laporan ditandai sudah dibayar.`);
       setPayOpen(false);
       setSelectedIds(new Set());
       setSelectedCount(0);
@@ -282,12 +281,6 @@ export default function HistoryContent({
                 </svg>
               </button>
             </div>
-
-            {payError && (
-              <p className="mb-4 rounded-[10px] border border-red-300 bg-red-50 px-3 py-2 text-[15px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-                {payError}
-              </p>
-            )}
 
             <form onSubmit={handlePaySubmit} className="flex flex-col gap-4">
               <p className="text-[14px] text-[#6b7280] dark:text-white/70">

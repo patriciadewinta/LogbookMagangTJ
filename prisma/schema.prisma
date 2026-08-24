@@ -16,6 +16,7 @@ model Profile {
   university  String?
   domisili    String?
   posisi      String?
+  nim         String?
   phone       String?
   startDate   String? @map("start_date")
   endDate     String? @map("end_date")
@@ -32,6 +33,7 @@ model Approver {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
   email     String
+  divisi    String?
   role      String
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -61,9 +63,11 @@ model LogbookSubmission {
   hadirCount       Int?     @map("hadir_count")
   cutiCount        Int?     @map("cuti_count")
   cutiReason       String?  @map("cuti_reason")
+  entries          Json?
   signedFilePath   String?  @map("signed_file_path")
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  approvalTokens   ApprovalToken[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -98,6 +102,22 @@ model PasswordSetToken {
 
   @@index([token])
   @@map("password_set_tokens")
+}
+
+model ApprovalToken {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submissionId  String   @map("submission_id") @db.Uuid
+  tahap         String
+  approverName  String   @map("approver_name")
+  approverEmail String   @map("approver_email")
+  token         String   @unique
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz(6)
+  usedAt        DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  submission    LogbookSubmission @relation(fields: [submissionId], references: [id])
+
+  @@index([token])
+  @@map("approval_tokens")
 }
 
 model AppSetting {

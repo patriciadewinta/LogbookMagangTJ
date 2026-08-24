@@ -89,6 +89,9 @@ create table if not exists public.approvers (
 
 alter table public.approvers enable row level security;
 
+-- Kolom divisi (ditambahkan kemudian untuk halaman Data Approver di OD).
+alter table public.approvers add column if not exists divisi text;
+
 -- Semua user login bisa membaca (dipakai dropdown di form)
 drop policy if exists "approvers_select_all" on public.approvers;
 create policy "approvers_select_all"
@@ -96,7 +99,25 @@ create policy "approvers_select_all"
   to authenticated
   using (true);
 
--- (Penulisan approvers diatur manual via SQL/dashboard admin nanti.)
+-- OD: kelola data approver (tambah/edit/hapus) dari halaman Data Approver.
+drop policy if exists "approvers_insert_od" on public.approvers;
+create policy "approvers_insert_od"
+  on public.approvers for insert
+  to authenticated
+  with check (public.is_od());
+
+drop policy if exists "approvers_update_od" on public.approvers;
+create policy "approvers_update_od"
+  on public.approvers for update
+  to authenticated
+  using (public.is_od())
+  with check (public.is_od());
+
+drop policy if exists "approvers_delete_od" on public.approvers;
+create policy "approvers_delete_od"
+  on public.approvers for delete
+  to authenticated
+  using (public.is_od());
 
 -- ============================================================
 -- 3) LOGBOOK_SUBMISSIONS
@@ -205,6 +226,19 @@ create policy "holidays_select_all"
 drop policy if exists "holidays_update_od" on public.holidays;
 create policy "holidays_update_od"
   on public.holidays for update
+  using (public.is_od());
+
+-- OD: kelola hari libur manual (tambah/hapus) dari halaman Hari Libur.
+drop policy if exists "holidays_insert_od" on public.holidays;
+create policy "holidays_insert_od"
+  on public.holidays for insert
+  to authenticated
+  with check (public.is_od());
+
+drop policy if exists "holidays_delete_od" on public.holidays;
+create policy "holidays_delete_od"
+  on public.holidays for delete
+  to authenticated
   using (public.is_od());
 
 -- ============================================================
@@ -352,6 +386,32 @@ create policy "avatars_delete_own"
   );
 
 -- ============================================================
+-- 3e) APPROVAL_TOKENS — token tautan TTD untuk approver (tanpa login)
+-- Satu token per submission+tahap; dipakai sekali. Validasi dilakukan
+-- lewat Prisma (service connection, bypass RLS) sehingga tabel ini
+-- tidak butuh policy sama sekali (anon/authenticated tidak dapat akses).
+-- ============================================================
+create table if not exists public.approval_tokens (
+  id uuid primary key default gen_random_uuid(),
+  submission_id uuid not null references public.logbook_submissions(id) on delete cascade,
+  tahap text not null check (tahap in ('pembimbing', 'kadep', 'kadiv')),
+  approver_name text not null,
+  approver_email text not null,
+  token text unique not null,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists approval_tokens_token_idx
+  on public.approval_tokens(token);
+
+create index if not exists approval_tokens_submission_idx
+  on public.approval_tokens(submission_id);
+
+alter table public.approval_tokens enable row level security;
+
+-- ============================================================
 -- 5) SEED APPROVERS (PLACEHOLDER — ganti dengan nama & email asli!)
 -- ============================================================
 insert into public.approvers (name, email, role) values
@@ -394,3 +454,16 @@ create policy "app_settings_update_od"
   to authenticated
   using (public.is_od())
   with check (public.is_od());
+
+-- ============================================================
+-- 6) GENERATE PDF LOGBOOK — kolom tambahan
+-- nim: diisi anak magang saat set-password (tampil di template PDF).
+-- entries: daftar {tanggal, kegiatan} harian (sumber generate PDF,
+--   bisa dilihat/regenerate tanpa buka file).
+-- ============================================================
+alter table public.profiles
+  add column if not exists nim text;
+
+alter table public.logbook_submissions
+  add column if not exists entries jsonb;
+
