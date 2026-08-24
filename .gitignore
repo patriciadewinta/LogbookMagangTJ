@@ -25,7 +25,7 @@
 *.pem
 
 # template assets (hasil ekspor Word — bukan bagian dari app)
-/templates/
+/templates/*.docx
 
 # debug
 npm-debug.log*
