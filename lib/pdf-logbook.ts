@@ -25,6 +25,14 @@ export interface GenerateLogbookPdfInput {
   // URL halaman verifikasi untuk QR tanda tangan digital (opsional;
   // tanpa ini QR tidak dicetak).
   verificationUrl?: string;
+  // Tahap yang SUDAH ditandatangani — QR hanya muncul di slot tahap yang
+  // sudah acc. QR anak magang (kolom "Dibuat oleh") selalu ada selama
+  // verificationUrl terisi karena dibuat saat pengajuan.
+  signed?: {
+    pembimbing: boolean;
+    kadep: boolean;
+    kadiv: boolean;
+  };
 }
 
 const hariFmt = new Intl.DateTimeFormat("id-ID", { weekday: "long" });
@@ -131,6 +139,8 @@ export async function generateLogbookPdf(
 
   // Kolom PARAF (pembimbing) = satu cell merged: rowspan sejumlah kegiatan,
   // berisi satu QR tanda tangan pembimbing + nama & jabatan di bawahnya.
+  // QR paraf hanya dicetak setelah pembimbing menandatangani (acc).
+  const parafSigned = input.signed?.pembimbing ?? false;
   const parafCell = (rowspan: number, src: string) =>
     src
       ? `<td class="col-paraf" rowspan="${rowspan}"><img src="${src}" alt="Paraf QR" style="width: 80px; height: 80px; display: block; margin: 0 auto;"><div style="font-size: 6pt; margin-top: 4pt;">${escapeHtml(input.pembimbing || "-")}</div><div style="font-size: 6pt;">(Pembimbing Magang)</div></td>`
@@ -143,7 +153,7 @@ export async function generateLogbookPdf(
     row.find("td.col-hari").text(hariFmt.format(d));
     row.find("td.col-tgl").text(tglFmt.format(d));
     row.find("td.col-keg").text(entry.kegiatan);
-    if (i === 0) row.append(parafCell(sorted.length, qrDataUrl));
+    if (i === 0) row.append(parafCell(sorted.length, parafSigned ? qrDataUrl : ""));
     tbody.append(row);
   });
   templateRow.remove();
@@ -164,10 +174,12 @@ export async function generateLogbookPdf(
 
   // QR tanda tangan digital: scan → halaman verifikasi logbook (dibuat oleh /
   // disetujui oleh siapa, tanggal & jam — live dari database).
+  // QR anak magang (qr-pembimbing) selalu ada; QR kadep/kadiv baru muncul
+  // setelah tahap masing-masing ditandatangani.
   if (qrDataUrl) {
     $('[data-field="qr-pembimbing"]').attr("src", qrDataUrl);
-    $('[data-field="qr-kadep"]').attr("src", qrDataUrl);
-    $('[data-field="qr-kadiv"]').attr("src", qrDataUrl);
+    if (input.signed?.kadep) $('[data-field="qr-kadep"]').attr("src", qrDataUrl);
+    if (input.signed?.kadiv) $('[data-field="qr-kadiv"]').attr("src", qrDataUrl);
   }
   // QR yang tidak terisi (fallback) dibuang supaya tidak render ikon broken.
   $('img[src=""]').remove();
