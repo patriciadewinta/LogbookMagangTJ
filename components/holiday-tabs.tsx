@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteHoliday, saveHoliday } from "@/app/actions";
+import DatePicker from "@/components/date-picker";
 import { usePopup } from "@/components/popup";
 import { useToast } from "@/components/toast-provider";
 
@@ -52,6 +53,7 @@ export default function HolidayTabs({ holidays }: { holidays: HolidayRow[] }) {
   const [busy, setBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState<string | null>(null);
   const [type, setType] = useState("libur_nasional");
+  const [date, setDate] = useState("");
   const [isLiburChecked, setIsLiburChecked] = useState(true);
 
   const currentYear = new Date().getFullYear();
@@ -72,12 +74,14 @@ export default function HolidayTabs({ holidays }: { holidays: HolidayRow[] }) {
   function openAdd() {
     setType("libur_nasional");
     setIsLiburChecked(true);
+    setDate("");
     setModal({ mode: "add" });
   }
 
   function openEdit(holiday: HolidayRow) {
     setType(holiday.type);
     setIsLiburChecked(holiday.isLibur);
+    setDate(holiday.date);
     setModal({ mode: "edit", holiday });
   }
 
@@ -408,14 +412,8 @@ export default function HolidayTabs({ holidays }: { holidays: HolidayRow[] }) {
                 <label htmlFor="hl-date" className={labelClass}>
                   Tanggal
                 </label>
-                <input
-                  id="hl-date"
-                  name="date"
-                  type="date"
-                  required
-                  defaultValue={modal.mode === "edit" ? modal.holiday.date : ""}
-                  className={inputClass}
-                />
+                <input type="hidden" name="date" value={date} />
+                <DatePicker value={date} onChange={setDate} placeholder="Pilih tanggal" />
               </div>
               <div>
                 <label htmlFor="hl-type" className={labelClass}>

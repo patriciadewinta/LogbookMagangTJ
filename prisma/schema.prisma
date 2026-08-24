@@ -68,11 +68,27 @@ model LogbookSubmission {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
   approvalTokens   ApprovalToken[]
+  dailyActivities  DailyActivity[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([userId, periodYear, periodMonth])
   @@map("logbook_submissions")
+}
+
+model DailyActivity {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String             @map("user_id") @db.Uuid
+  tanggal      String // YYYY-MM-DD
+  kegiatan     String
+  submissionId String?            @map("submission_id") @db.Uuid
+  submission   LogbookSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([userId, tanggal])
+  @@index([userId, submissionId])
+  @@map("daily_activities")
 }
 
 model Holiday {

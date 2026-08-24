@@ -160,6 +160,9 @@ export async function submitLogbook(formData: FormData) {
       periodMonth = m;
     }
   }
+  if (periodYear === null || periodMonth === null) {
+    return { error: "Pilih periode logbook." };
+  }
 
   // Data cuti/izin (checkbox + jumlah hari + alasan).
   const hasCuti = formData.get("has_cuti") === "on";
@@ -173,34 +176,35 @@ export async function submitLogbook(formData: FormData) {
     }
   }
 
-  // Daftar kegiatan harian (sumber generate PDF).
-  let entries: { tanggal: string; kegiatan: string }[] = [];
-  try {
-    const parsed = JSON.parse(String(formData.get("entries") ?? "[]"));
-    if (Array.isArray(parsed)) entries = parsed;
-  } catch {
-    // biarkan validasi di bawah yang menolak
+  // Lepas draft dari submission yang ditolak supaya bisa di-resubmit.
+  await prisma.dailyActivity.updateMany({
+    where: {
+      userId: user.id,
+      submissionId: { not: null },
+      submission: { status: "rejected" },
+    },
+    data: { submissionId: null },
+  });
+
+  // Tolak kalau periode ini sudah pernah dikirim dan belum ditolak.
+  const existing = await prisma.logbookSubmission.findFirst({
+    where: { userId: user.id, periodYear, periodMonth, status: { not: "rejected" } },
+    select: { id: true },
+  });
+  if (existing) {
+    return { error: "Logbook untuk periode ini sudah pernah dikirim." };
   }
-  if (entries.length < 1 || entries.length > 31) {
-    return { error: "Isi kegiatan harian minimal 1 dan maksimal 31 entri." };
+
+  // Kegiatan harian diambil dari draft tersimpan di database.
+  const periodPrefix = `${periodYear}-${String(periodMonth).padStart(2, "0")}`;
+  const drafts = await prisma.dailyActivity.findMany({
+    where: { userId: user.id, submissionId: null, tanggal: { startsWith: periodPrefix } },
+    orderBy: { tanggal: "asc" },
+  });
+  if (drafts.length < 1 || drafts.length > 31) {
+    return { error: "Simpan dulu kegiatan harian di halaman sebelumnya (minimal 1, maksimal 31 entri untuk periode ini)." };
   }
-  for (const e of entries) {
-    if (!e || typeof e.kegiatan !== "string" || !e.kegiatan.trim()) {
-      return { error: "Ada entri dengan kegiatan kosong." };
-    }
-    if (e.kegiatan.length > 500) {
-      return { error: "Kegiatan maksimal 500 karakter per entri." };
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(e.tanggal) || Number.isNaN(new Date(`${e.tanggal}T00:00:00`).getTime())) {
-      return { error: "Ada tanggal yang tidak valid." };
-    }
-    if (periodYear !== null) {
-      const [y, m] = e.tanggal.split("-").map(Number);
-      if (y !== periodYear || m !== periodMonth) {
-        return { error: "Semua tanggal kegiatan harus dalam bulan periode laporan." };
-      }
-    }
-  }
+  const entries = drafts.map((d) => ({ tanggal: d.tanggal, kegiatan: d.kegiatan }));
 
   // Hari hadir = akumulasi baris kegiatan harian.
   const hadirCount = entries.length;
@@ -294,6 +298,12 @@ export async function submitLogbook(formData: FormData) {
     };
   }
 
+  // Tandai draft sudah masuk submission (riwayat mentahan tetap kekal).
+  await prisma.dailyActivity.updateMany({
+    where: { id: { in: drafts.map((d) => d.id) } },
+    data: { submissionId },
+  });
+
   // Email ke pembimbing dulu; kadep/kadiv dikirim otomatis saat TTD berjalan.
   const approvalToken = await createApprovalToken(
     submissionId,
@@ -330,6 +340,96 @@ export async function submitLogbook(formData: FormData) {
   );
 
   redirect("/done-submit");
+}
+
+// Tanggal hari ini (YYYY-MM-DD) zona Asia/Jakarta — patokan validasi
+// "kegiatan tidak boleh diisi untuk tanggal yang belum lewat".
+function jakartaToday() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+}
+
+function validTanggal(tanggal: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(tanggal) && !Number.isNaN(new Date(`${tanggal}T00:00:00`).getTime());
+}
+
+export async function getDailyActivities() {
+  const { user } = await requireUserClient();
+  const activities = await prisma.dailyActivity.findMany({
+    where: { userId: user.id, submissionId: null },
+    orderBy: { tanggal: "asc" },
+    select: { id: true, tanggal: true, kegiatan: true },
+  });
+  return { activities };
+}
+
+export async function saveDailyActivities(formData: FormData) {
+  const { user } = await requireUserClient();
+
+  let raw: unknown = [];
+  try {
+    raw = JSON.parse(String(formData.get("entries") ?? "[]"));
+  } catch {
+    return { error: "Data kegiatan tidak valid." };
+  }
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > 31) {
+    return { error: "Simpan minimal 1 dan maksimal 31 kegiatan sekaligus." };
+  }
+
+  const today = jakartaToday();
+  const byTanggal = new Map<string, { tanggal: string; kegiatan: string }>();
+  for (const item of raw) {
+    const e = item as { tanggal?: unknown; kegiatan?: unknown };
+    const tanggal = typeof e.tanggal === "string" ? e.tanggal : "";
+    const kegiatan = typeof e.kegiatan === "string" ? e.kegiatan.trim() : "";
+    if (!validTanggal(tanggal)) return { error: "Ada tanggal yang tidak valid." };
+    if (tanggal > today) return { error: "Tidak bisa mengisi kegiatan untuk tanggal yang belum lewat." };
+    if (!kegiatan) return { error: "Ada kegiatan yang kosong." };
+    if (kegiatan.length > 500) return { error: "Kegiatan maksimal 500 karakter per entri." };
+    byTanggal.set(tanggal, { tanggal, kegiatan });
+  }
+  const entries = [...byTanggal.values()];
+
+  const dates = entries.map((e) => e.tanggal);
+  const locked = await prisma.dailyActivity.findMany({
+    where: { userId: user.id, tanggal: { in: dates }, submissionId: { not: null } },
+    select: { tanggal: true },
+  });
+  if (locked.length > 0) {
+    return { error: `Kegiatan tanggal ${locked[0].tanggal} sudah masuk logbook yang dikirim dan tidak bisa diubah.` };
+  }
+
+  try {
+    await prisma.$transaction(
+      entries.map((e) =>
+        prisma.dailyActivity.upsert({
+          where: { userId_tanggal: { userId: user.id, tanggal: e.tanggal } },
+          create: { userId: user.id, tanggal: e.tanggal, kegiatan: e.kegiatan },
+          update: { kegiatan: e.kegiatan },
+        })
+      )
+    );
+  } catch (e) {
+    return { error: `Gagal menyimpan kegiatan: ${e instanceof Error ? e.message : "unknown"}` };
+  }
+
+  return { error: null as string | null };
+}
+
+export async function deleteDailyActivity(formData: FormData) {
+  const { user } = await requireUserClient();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "ID kegiatan tidak valid." };
+
+  const existing = await prisma.dailyActivity.findUnique({ where: { id } });
+  if (!existing || existing.userId !== user.id) {
+    return { error: "Kegiatan tidak ditemukan." };
+  }
+  if (existing.submissionId) {
+    return { error: "Kegiatan ini sudah masuk logbook yang dikirim." };
+  }
+
+  await prisma.dailyActivity.delete({ where: { id } });
+  return { error: null as string | null };
 }
 
 export async function updateProfile(formData: FormData) {
@@ -582,6 +682,23 @@ export async function deleteSubmission(formData: FormData) {
   }
 
   revalidatePath("/od/history");
+  return { error: null };
+}
+
+// Hapus undangan anak magang yang belum set password (baris token saja,
+// belum ada akun/profile jadi tidak perlu bersih-bersih storage/auth).
+export async function deletePendingIntern(formData: FormData) {
+  await requireOD();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Undangan tidak ditemukan." };
+
+  try {
+    await prisma.passwordSetToken.delete({ where: { id } });
+  } catch (e) {
+    return {
+      error: `Gagal menghapus undangan: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
   return { error: null };
 }
 
