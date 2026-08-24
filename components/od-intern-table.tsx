@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteIntern, updateIntern } from "@/app/actions";
+import { deleteIntern, deletePendingIntern, updateIntern } from "@/app/actions";
+import DatePicker from "@/components/date-picker";
 import { usePopup } from "@/components/popup";
 import { useToast } from "@/components/toast-provider";
 import { PROVINCES } from "@/lib/domisili";
 
 export type InternRow = {
   id: string;
+  tokenId: string | null;
   fullName: string;
   email: string | null;
   university: string | null;
@@ -17,6 +19,19 @@ export type InternRow = {
   startDate: string | null;
   endDate: string | null;
   phone: string | null;
+  status: "aktif" | "pending" | "expired";
+};
+
+const STATUS_LABEL: Record<InternRow["status"], string> = {
+  aktif: "Aktif",
+  pending: "Menunggu Konfirmasi",
+  expired: "Undangan Kedaluwarsa",
+};
+
+const STATUS_STYLE: Record<InternRow["status"], string> = {
+  aktif: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  expired: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
 };
 
 const MONTHS = [
@@ -50,10 +65,14 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
   const { confirm } = usePopup();
   const toast = useToast();
   const [editing, setEditing] = useState<InternRow | null>(null);
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState<string | null>(null);
 
   function openEdit(intern: InternRow) {
+    setEditStart(intern.startDate ?? "");
+    setEditEnd(intern.endDate ?? "");
     setEditing(intern);
   }
 
@@ -81,17 +100,20 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
 
   async function handleDelete(intern: InternRow) {
     if (deleteBusy) return;
+    const isPending = !!intern.tokenId;
     const ok = await confirm({
-      title: "Hapus Anak Magang",
-      message: `Hapus akun & data anak magang "${intern.fullName}"?`,
-      confirmLabel: "Hapus",
+      title: isPending ? "Batalkan Undangan" : "Hapus Anak Magang",
+      message: isPending
+        ? `Batalkan undangan "${intern.fullName}"? Dia tidak akan bisa set password dari email yang lama.`
+        : `Hapus akun & data anak magang "${intern.fullName}"?`,
+      confirmLabel: isPending ? "Batalkan" : "Hapus",
       danger: true,
     });
     if (!ok) return;
     setDeleteBusy(intern.id);
     const fd = new FormData();
-    fd.set("id", intern.id);
-    const res = await deleteIntern(fd);
+    fd.set("id", isPending ? (intern.tokenId as string) : intern.id);
+    const res = isPending ? await deletePendingIntern(fd) : await deleteIntern(fd);
     setDeleteBusy(null);
     if (res?.error) {
       toast.error(res.error);
@@ -110,6 +132,7 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
               <tr className="bg-[#374ADF]/[0.07] dark:bg-[#374ADF]/[0.07]">
                 {[
                   "Nama",
+                  "Status",
                   "Asal Domisili",
                   "Universitas/Instansi",
                   "Posisi",
@@ -142,6 +165,13 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                       </span>
                     </div>
                   </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold ${STATUS_STYLE[p.status] ?? STATUS_STYLE.pending}`}
+                    >
+                      {STATUS_LABEL[p.status] ?? p.status}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-[15px] text-black/70 dark:text-white/70">
                     {p.domisili || "—"}
                   </td>
@@ -159,21 +189,23 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(p)}
-                        title="Edit"
-                        aria-label={`Edit ${p.fullName}`}
-                        className="grid size-8 cursor-pointer place-items-center rounded-[8px] text-[#001192] transition-colors hover:bg-[#deedf8] dark:text-[#4258ff] dark:hover:bg-white/10"
-                      >
-                        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path
-                            d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
+                      {!p.tokenId && (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(p)}
+                          title="Edit"
+                          aria-label={`Edit ${p.fullName}`}
+                          className="grid size-8 cursor-pointer place-items-center rounded-[8px] text-[#001192] transition-colors hover:bg-[#deedf8] dark:text-[#4258ff] dark:hover:bg-white/10"
+                        >
+                          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path
+                              d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleDelete(p)}
@@ -329,25 +361,20 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                   <label htmlFor="f-start" className={labelClass}>
                     Tanggal Mulai Magang
                   </label>
-                  <input
-                    id="f-start"
-                    name="start_date"
-                    type="date"
-                    defaultValue={editing.startDate ?? ""}
-                    className={inputClass}
-                  />
+                  <input type="hidden" name="start_date" value={editStart} />
+                  <DatePicker value={editStart} onChange={setEditStart} placeholder="Pilih tanggal" />
                 </div>
 
                 <div>
                   <label htmlFor="f-end" className={labelClass}>
                     Tanggal Selesai Magang
                   </label>
-                  <input
-                    id="f-end"
-                    name="end_date"
-                    type="date"
-                    defaultValue={editing.endDate ?? ""}
-                    className={inputClass}
+                  <input type="hidden" name="end_date" value={editEnd} />
+                  <DatePicker
+                    value={editEnd}
+                    onChange={setEditEnd}
+                    min={editStart || undefined}
+                    placeholder="Pilih tanggal"
                   />
                 </div>
               </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PROVINCES } from "@/lib/domisili";
+import DatePicker from "@/components/date-picker";
 import { useToast } from "@/components/toast-provider";
 
 const inputClass =
@@ -14,6 +15,8 @@ export default function AddInternModal({ onClose }: { onClose: () => void }) {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [lastEmail, setLastEmail] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,6 +49,8 @@ export default function AddInternModal({ onClose }: { onClose: () => void }) {
         toast.success(`Email setup password dikirim ke ${payload.email}.`);
         setLastEmail(payload.email);
         form.reset();
+        setStartDate("");
+        setEndDate("");
         router.refresh();
       }
     } catch (err) {
@@ -174,13 +179,20 @@ export default function AddInternModal({ onClose }: { onClose: () => void }) {
               <label htmlFor="a-start" className={labelClass}>
                 Tanggal Mulai Magang
               </label>
-              <input id="a-start" name="start_date" type="date" className={inputClass} />
+              <input type="hidden" name="start_date" value={startDate} />
+              <DatePicker value={startDate} onChange={setStartDate} placeholder="Pilih tanggal" />
             </div>
             <div>
               <label htmlFor="a-end" className={labelClass}>
                 Tanggal Selesai Magang
               </label>
-              <input id="a-end" name="end_date" type="date" className={inputClass} />
+              <input type="hidden" name="end_date" value={endDate} />
+              <DatePicker
+                value={endDate}
+                onChange={setEndDate}
+                min={startDate || undefined}
+                placeholder="Pilih tanggal"
+              />
             </div>
           </div>
 
