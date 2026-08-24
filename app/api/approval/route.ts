@@ -10,6 +10,9 @@ import {
   TAHAP_LABEL,
 } from "@/lib/approval";
 
+// POST memicu regenerasi PDF (headless Chrome) setelah tanda tangan.
+export const maxDuration = 60;
+
 function invalid(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }

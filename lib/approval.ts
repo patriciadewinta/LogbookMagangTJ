@@ -3,6 +3,7 @@ import type { LogbookSubmission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildLogbookNotification, sendLogbookEmail } from "@/lib/notify";
+import { generateLogbookPdf } from "@/lib/pdf-logbook";
 
 export type Tahap = "pembimbing" | "kadep" | "kadiv";
 
@@ -132,6 +133,68 @@ async function sendTahapEmail(
   );
 }
 
+// Regenerasi PDF logbook dengan QR tanda tangan bertahap: slot QR hanya
+// terisi untuk tahap yang sudah acc, lalu di-upload menimpa file lama di
+// storage. Best-effort — kegagalan regenerasi tidak membatalkan approval.
+async function regenerateSignedLogbook(
+  submission: LogbookSubmission,
+  status: string
+) {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: { id: submission.userId },
+    });
+    const approverIds = [submission.pembimbingId, submission.kadepId, submission.kadivId]
+      .filter((id): id is string => !!id);
+    const approvers = await prisma.approver.findMany({
+      where: { id: { in: approverIds } },
+      select: { id: true, divisi: true },
+    });
+    const divisiOf = (id: string) =>
+      approvers.find((a) => a.id === id)?.divisi ?? null;
+
+    const entries = (Array.isArray(submission.entries) ? submission.entries : []) as {
+      tanggal: string;
+      kegiatan: string;
+    }[];
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    const pdf = await generateLogbookPdf({
+      profile: {
+        fullName: profile?.fullName ?? null,
+        university: profile?.university ?? null,
+        posisi: profile?.posisi ?? null,
+        nim: profile?.nim ?? null,
+      },
+      entries,
+      periodYear: submission.periodYear ?? new Date().getFullYear(),
+      periodMonth: submission.periodMonth ?? new Date().getMonth() + 1,
+      pembimbing: submission.pembimbingName,
+      kadep: submission.kadepName,
+      kadiv: submission.kadivName,
+      kadepDepartemen: divisiOf(submission.kadepId),
+      kadivDivisi: divisiOf(submission.kadivId),
+      verificationUrl: appUrl ? `${appUrl}/verifikasi/${submission.id}` : undefined,
+      signed: {
+        pembimbing: ["pembimbing_approved", "kadep_approved", "kadiv_approved"].includes(status),
+        kadep: ["kadep_approved", "kadiv_approved"].includes(status),
+        kadiv: status === "kadiv_approved",
+      },
+    });
+
+    const admin = createAdminClient();
+    const { error } = await admin.storage
+      .from("logbooks")
+      .upload(submission.logbookFilePath, pdf, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+    if (error) console.error("Gagal upload ulang PDF logbook:", error.message);
+  } catch (e) {
+    console.error("Gagal regenerasi PDF logbook:", e);
+  }
+}
+
 // Advance status setelah `approvedTahap` ditandatangani. Jika approver tahap
 // berikutnya orang yang sama (email sama), tahap itu di-auto-advance tanpa
 // email; email hanya dikirim saat penerima benar-benar berubah.
@@ -155,10 +218,14 @@ export async function advanceApproval(
     break;
   }
 
+  const newStatus = TAHAP_ORDER[finalTahap];
   await prisma.logbookSubmission.update({
     where: { id: submission.id },
-    data: { status: TAHAP_ORDER[finalTahap] },
+    data: { status: newStatus },
   });
+
+  // QR tanda tangan tahap yang baru saja acc dicetak ke PDF (menimpa file lama).
+  await regenerateSignedLogbook(submission, newStatus);
 
   const nextTahap = NEXT_TAHAP[finalTahap];
   if (!nextTahap) return { finished: true };
