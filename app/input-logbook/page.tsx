@@ -105,6 +105,8 @@ export default function InputLogbookPage() {
   const [period, setPeriod] = useState("");
   const [today, setToday] = useState("");
   const [hasCuti, setHasCuti] = useState(false);
+  const [cutiCount, setCutiCount] = useState("1");
+  const [cutiReason, setCutiReason] = useState("");
 
   const rebuildRows = useCallback((list: Draft[], p: string) => {
     const saved = list
@@ -253,6 +255,12 @@ export default function InputLogbookPage() {
 
     setLoading(true);
     const fd = new FormData(e.currentTarget);
+    // Field yang hanya dirender di step 1 (periode & cuti) tidak ikut
+    // di-DOM saat submit dari step 2 — kirim eksplisit dari state.
+    fd.set("period", period);
+    fd.set("has_cuti", hasCuti ? "on" : "");
+    fd.set("cuti_count", hasCuti ? cutiCount : "");
+    fd.set("cuti_reason", hasCuti ? cutiReason : "");
     const res = await submitLogbook(fd);
     if (res?.error) {
       setError(res.error);
@@ -464,7 +472,8 @@ export default function InputLogbookPage() {
                       type="number"
                       name="cuti_count"
                       min={0}
-                      defaultValue={1}
+                      value={cutiCount}
+                      onChange={(e) => setCutiCount(e.target.value)}
                       className="mt-2 h-11 w-full rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[16px] text-black outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
                     />
                   </div>
@@ -474,6 +483,8 @@ export default function InputLogbookPage() {
                       type="text"
                       name="cuti_reason"
                       placeholder="Contoh: izin sakit, acara keluarga, dll."
+                      value={cutiReason}
+                      onChange={(e) => setCutiReason(e.target.value)}
                       className="mt-2 h-11 w-full rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[16px] text-black outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
                     />
                   </div>
