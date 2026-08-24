@@ -35,6 +35,21 @@ export interface GenerateLogbookPdfInput {
   };
 }
 
+// Cache modul-level: hal-hal yang sama persik antar generate (baca file
+// template, logo base64, QR per URL verifikasi) tidak diulang tiap kali.
+let templateHtmlCache: string | null = null;
+let logoB64Cache: string | null = null;
+const qrDataUrlCache = new Map<string, string>();
+
+async function getQrDataUrl(url: string): Promise<string> {
+  const cached = qrDataUrlCache.get(url);
+  if (cached) return cached;
+  const QRCode = (await import("qrcode")).default;
+  const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 320 });
+  qrDataUrlCache.set(url, dataUrl);
+  return dataUrl;
+}
+
 const hariFmt = new Intl.DateTimeFormat("id-ID", { weekday: "long" });
 
 function escapeHtml(s: string) {
@@ -109,7 +124,10 @@ export async function generateLogbookPdf(
   input: GenerateLogbookPdfInput
 ): Promise<Buffer> {
   const templatePath = path.join(process.cwd(), "templates", "logbook-template.html");
-  const $ = cheerio.load(fs.readFileSync(templatePath, "utf8"));
+  if (templateHtmlCache === null) {
+    templateHtmlCache = fs.readFileSync(templatePath, "utf8");
+  }
+  const $ = cheerio.load(templateHtmlCache);
 
   // Identitas
   $('[data-field="nama"]').text(input.profile.fullName || "-");
@@ -133,8 +151,7 @@ export async function generateLogbookPdf(
   // Satu QR untuk semua titik tanda tangan digital (paraf merged + TTD bawah).
   let qrDataUrl = "";
   if (input.verificationUrl) {
-    const QRCode = (await import("qrcode")).default;
-    qrDataUrl = await QRCode.toDataURL(input.verificationUrl, { margin: 1, width: 320 });
+    qrDataUrl = await getQrDataUrl(input.verificationUrl);
   }
 
   // Kolom PARAF (pembimbing) = satu cell merged: rowspan sejumlah kegiatan,
@@ -186,12 +203,16 @@ export async function generateLogbookPdf(
 
   // Logo di-inline base64 dari folder templates (ikut ke-bundle serverless,
   // beda dengan public/ yang cuma disajikan statis).
-  const logoPath = path.join(process.cwd(), "templates", "logo-tj.png");
-  if (fs.existsSync(logoPath)) {
-    const b64 = fs.readFileSync(logoPath).toString("base64");
+  if (logoB64Cache === null) {
+    const logoPath = path.join(process.cwd(), "templates", "logo-tj.png");
+    logoB64Cache = fs.existsSync(logoPath)
+      ? fs.readFileSync(logoPath).toString("base64")
+      : "";
+  }
+  if (logoB64Cache) {
     $('img[src="../public/assets/logo-tj.png"]').attr(
       "src",
-      `data:image/png;base64,${b64}`
+      `data:image/png;base64,${logoB64Cache}`
     );
   } else {
     $('img[src="../public/assets/logo-tj.png"]').remove();

@@ -150,8 +150,8 @@ async function regenerateSignedLogbook(
       where: { id: { in: approverIds } },
       select: { id: true, divisi: true },
     });
-    const divisiOf = (id: string) =>
-      approvers.find((a) => a.id === id)?.divisi ?? null;
+    const divisiOf = (id: string | null) =>
+      (id && approvers.find((a) => a.id === id)?.divisi) ?? null;
 
     const entries = (Array.isArray(submission.entries) ? submission.entries : []) as {
       tanggal: string;
