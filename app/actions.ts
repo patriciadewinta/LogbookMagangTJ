@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireOD, requireUser, requireUserClient } from "@/lib/auth";
@@ -10,7 +11,6 @@ import { buildLogbookNotification, sendLogbookEmail } from "@/lib/notify";
 import { buildTtdUrl, createApprovalToken } from "@/lib/approval";
 import { generateLogbookPdf } from "@/lib/pdf-logbook";
 import { PROVINCES } from "@/lib/domisili";
-import { ocrAttendanceCount } from "@/lib/ocr";
 import { clearWorkdayCache } from "@/lib/holidays";
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
@@ -209,7 +209,7 @@ export async function submitLogbook(formData: FormData) {
   // Hari hadir = akumulasi baris kegiatan harian.
   const hadirCount = entries.length;
 
-  let approvers: { id: string; name: string; email: string; role: string }[];
+  let approvers: { id: string; name: string; email: string; role: string; divisi: string | null }[];
   try {
     approvers = await prisma.approver.findMany({
       where: { id: { in: [pembimbingId, kadepId, kadivId] } },
@@ -226,7 +226,9 @@ export async function submitLogbook(formData: FormData) {
   const byId = new Map(approvers.map((a) => [a.id, a]));
   const snapshot = (id: string) => {
     const a = byId.get(id);
-    return a ? { name: a.name, email: a.email } : { name: null, email: null };
+    return a
+      ? { name: a.name, email: a.email, divisi: a.divisi }
+      : { name: null, email: null, divisi: null };
   };
 
   const pembimbing = snapshot(pembimbingId);
@@ -234,6 +236,11 @@ export async function submitLogbook(formData: FormData) {
   const kadiv = snapshot(kadivId);
 
   const profile = await prisma.profile.findUnique({ where: { id: user.id } });
+
+  // ID dibuat di awal supaya URL verifikasi bisa dicetak sebagai QR di PDF.
+  const submissionId = crypto.randomUUID();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+  const verificationUrl = appUrl ? `${appUrl}/verifikasi/${submissionId}` : undefined;
 
   // Generate PDF dari template dengan data form.
   const now = new Date();
@@ -254,6 +261,9 @@ export async function submitLogbook(formData: FormData) {
       pembimbing: pembimbing.name,
       kadep: kadep.name,
       kadiv: kadiv.name,
+      kadepDepartemen: kadep.divisi,
+      kadivDivisi: kadiv.divisi,
+      verificationUrl,
     });
   } catch (e) {
     return {
@@ -267,10 +277,10 @@ export async function submitLogbook(formData: FormData) {
     .upload(filePath, pdfBuffer, { contentType: "application/pdf" });
   if (uploadError) return { error: `Gagal unggah logbook: ${uploadError.message}` };
 
-  let submissionId: string;
   try {
-    const submission = await prisma.logbookSubmission.create({
+    await prisma.logbookSubmission.create({
       data: {
+        id: submissionId,
         userId: user.id,
         logbookFilePath: filePath,
         pembimbingId,
@@ -291,7 +301,6 @@ export async function submitLogbook(formData: FormData) {
         status: "submitted",
       },
     });
-    submissionId = submission.id;
   } catch (e) {
     return {
       error: `Gagal menyimpan laporan: ${e instanceof Error ? e.message : "unknown"}`,

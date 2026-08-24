@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Logbook Magang</title>
+<style>
+  @page {
+    size: 210mm 297mm;
+    margin: 12.35mm 5mm 4.95mm 7.5mm;
+  }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 6pt;
+    color: #000;
+    padding: 12.35mm 5mm 4.95mm 7.5mm;
+  }
+  h1 {
+    text-align: center;
+    font-size: 8pt;
+    margin-bottom: 14pt;
+  }
+
+  /* Tabel 1 — identitas */
+  table.identitas {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 14pt;
+  }
+  table.identitas td {
+    padding: 2pt 4pt;
+    vertical-align: top;
+  }
+  table.identitas td,
+  table.identitas td span {
+    font-weight: bold;
+  }
+  table.identitas .label {
+    white-space: nowrap;
+  }
+
+  /* Tabel 2 — laporan kegiatan harian */
+  table.logbook {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  table.logbook th,
+  table.logbook td {
+    border: 1px solid #000;
+    padding: 3pt 4pt;
+    text-align: center;
+    word-wrap: break-word;
+  }
+  table.logbook th {
+    font-weight: bold;
+  }
+  table.logbook th small {
+    font-weight: normal;
+  }
+  table.logbook col.col-no     { width: 5%; }
+  table.logbook col.col-hari   { width: 15%; }
+  table.logbook col.col-tgl    { width: 15%; }
+  table.logbook col.col-keg    { width: 50%; }
+  table.logbook td.col-keg     { text-align: left; }
+  table.logbook col.col-paraf  { width: 15%; }
+
+  /* Area tanda tangan */
+  .ttd-area {
+    margin-top: 20pt;
+    width: 100%;
+  }
+  .ttd-kota {
+    text-align: right;
+    margin-right: 20pt;
+    margin-bottom: 8pt;
+  }
+  table.ttd {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  table.ttd td {
+    text-align: center;
+    vertical-align: top;
+    padding: 0 6pt;
+  }
+  .ttd-ruang {
+    height: 60pt;
+  }
+  .ttd-nama {
+    font-weight: bold;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div style="position: absolute; top: 12.35mm; left: 7.5mm; transform: translateY(-30px);">
+  <img src="../public/assets/logo-tj.png" alt="Logo TJ" style="width: 55px; height: auto;">
+</div>
+
+<h1>LOGBOOK MAGANG</h1>
+
+<table class="identitas">
+  <tr>
+    <td class="label">Nama</td>
+    <td>: <span data-field="nama">Patricia Dewinta Wahyu Krisnayanti</span></td>
+    <td class="label">Divisi / Departemen</td>
+    <td>: <span data-field="divisi">Sumber Daya Manusia / Senior Spesialis Remunerasi</span></td>
+  </tr>
+  <tr>
+    <td class="label">NIM</td>
+    <td>: <span data-field="nim">164221079</span></td>
+    <td class="label">Tanggal Periode Laporan</td>
+    <td>: <span data-field="periode">4 Mei s/d 29 Mei 2026</span></td>
+  </tr>
+  <tr>
+    <td class="label">Universitas / Institut</td>
+    <td>: <span data-field="universitas">Universitas Airlangga</span></td>
+    <td></td>
+    <td></td>
+  </tr>
+</table>
+
+<table class="logbook">
+  <col class="col-no">
+  <col class="col-hari">
+  <col class="col-tgl">
+  <col class="col-keg">
+  <col class="col-paraf">
+  <thead>
+    <tr>
+        <th colspan=5>LAPORAN KEGIATAN HARIAN PESERTA MAGANG</th>
+    </tr>
+    <tr>
+      <th class="col-no">NO</th>
+      <th class="col-hari">HARI</th>
+      <th class="col-tgl">TANGGAL <small><br>*(Tanggal Kegiatan)*</small></th>
+      <th class="col-keg">KEGIATAN <small><br>*(Laporan Kegiatan Harian)*</small></th>
+      <th class="col-paraf">PARAF <small><br>*(Pembimbing)*</small></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr data-row="kegiatan">
+      <td class="col-no">1</td>
+      <td class="col-hari">Senin</td>
+      <td class="col-tgl">3 Agustus 2026</td>
+      <td class="col-keg" data-field="kegiatan">Contoh kegiatan harian</td>
+      <!-- Paraf dibuat merged (rowspan) oleh generator: satu QR pembimbing
+           untuk seluruh kegiatan. -->
+    </tr>
+  </tbody>
+</table>
+
+<div class="ttd-area">
+  <p class="ttd-kota">Jakarta, <span data-field="tanggal-ttd">29 Mei 2026</span></p>
+  <table class="ttd">
+    <tr>
+      <td>
+        <div class="ttd-ruang" data-field="ttd-pembimbing"></div>
+        <div>Dibuat oleh</div>
+        <img src="" data-field="qr-pembimbing" alt="QR Code" style="width: 80px; height: 80px; display: block; margin: 0 auto;">
+        <div data-field="nama-pembimbing-text">{Nama Peserta Magang}</div>
+        <div class="ttd-nama" data-field="nama-pembimbing-jabatan">(Peserta Magang)</div>
+      </td>
+      <td>
+        <div class="ttd-ruang" data-field="ttd-kadep"></div>
+        <div>Diketahui oleh</div>
+        <img src="" data-field="qr-kadep" alt="QR Code" style="width: 80px; height: 80px; display: block; margin: 0 auto;">
+        <div data-field="nama-kadep-text">{Nama Kepala Departemen}</div>
+        <div class="ttd-nama" data-field="nama-kadep-jabatan">(Ketua Departemen {departemen})</div>
+      </td>
+      <td>
+        <div class="ttd-ruang" data-field="ttd-kadiv"></div>
+        <div>Diketahui oleh</div>
+        <img src="" data-field="qr-kadiv" alt="QR Code" style="width: 80px; height: 80px; display: block; margin: 0 auto;">
+        <div data-field="nama-kadiv-text">{Nama Kepala Divisi}</div>
+        <div class="ttd-nama" data-field="nama-kadiv-jabatan">(Kepala Divisi {divisi})</div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>
