@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { buildEmailHtml, escapeEmailHtml } from './email-template';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -15,25 +16,28 @@ export async function sendPasswordSetEmail({
 }: SendPasswordSetEmailParams) {
   const setPasswordUrl = `${process.env.NEXT_PUBLIC_APP_URL}/set-password?token=${token}`;
 
+  const bodyHtml = `
+    <p>Yth. <b>${escapeEmailHtml(name)}</b>,</p>
+    <p>Anda telah terdaftar sebagai peserta magang di unit kerja kami. Untuk
+    melanjutkan proses magang, Anda wajib membuat akun dengan menetapkan
+    password melalui tombol di bawah ini.</p>
+    <p>Link ini bersifat pribadi dan berlaku selama <b>7 hari</b>. Setelah masa
+    berlaku habis, silakan hubungi petugas OD untuk mendapatkan link baru.</p>
+  `;
+
+  const html = buildEmailHtml({
+    heading: 'Pembuatan Akun Logbook Magang',
+    bodyHtml,
+    ctaText: 'Set Password',
+    ctaUrl: setPasswordUrl,
+  });
+
   try {
     const data = await resend.emails.send({
       from: 'Logbook Magang <onboarding@resend.dev>', // Pakai default domain Resend (gratis)
       to: email,
-      subject: 'Set Password untuk Logbook Magang',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #001192;">Halo, ${name}!</h2>
-          <p>Anda telah ditambahkan ke program magang.</p>
-          <p>Silakan set password dengan klik tombol di bawah:</p>
-          <br/>
-          <a href="${setPasswordUrl}" style="background: #001192; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Set Password</a>
-          <br/>
-          <p>Atau buka link ini: <a href="${setPasswordUrl}">${setPasswordUrl}</a></p>
-          <p>Link berlaku 7 hari.</p>
-          <br/>
-          <p>Terima kasih!</p>
-        </div>
-      `,
+      subject: 'Pembuatan Akun Logbook Magang TransJakarta',
+      html,
     });
 
     return { success: true, data };

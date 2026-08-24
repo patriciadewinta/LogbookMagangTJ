@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { buildEmailHtml, detailTable, escapeEmailHtml } from "./email-template";
 
 export type LogbookNotificationPayload = {
   tahap: string;
@@ -13,6 +14,7 @@ export type LogbookNotificationPayload = {
   filePath: string;
   tanggal: string;
   pesan: string;
+  ctaUrl?: string;
 };
 
 export function composeLogbookMessage(input: {
@@ -61,6 +63,7 @@ export function buildLogbookNotification(input: {
   filePath: string;
   tanggal?: Date | string;
   pesan?: string;
+  ctaUrl?: string;
 }): LogbookNotificationPayload {
   const tanggal = input.tanggal ? new Date(input.tanggal) : new Date();
   return {
@@ -85,6 +88,7 @@ export function buildLogbookNotification(input: {
         namaPembimbing: input.namaPembimbing,
         namaKadep: input.namaKadep,
       }),
+    ctaUrl: input.ctaUrl,
   };
 }
 
@@ -94,34 +98,32 @@ const TAHAP_LABEL: Record<string, string> = {
   kadiv: "Kepala Divisi",
 };
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function buildLogbookEmail(payload: LogbookNotificationPayload): {
   subject: string;
   html: string;
 } {
-  const e = escapeHtml;
+  const e = escapeEmailHtml;
   const label = TAHAP_LABEL[payload.tahap] ?? payload.tahap;
   const subject = `Permohonan penandatanganan logbook magang — tahap ${label}`;
-  const html = [
+
+  const bodyHtml = [
     `<p>${e(payload.pesan)}</p>`,
-    "<table>",
-    `<tr><td><b>Nama</b></td><td>${e(payload.namaPengaju)}</td></tr>`,
-    `<tr><td><b>Universitas</b></td><td>${e(payload.universitas)}</td></tr>`,
-    `<tr><td><b>Posisi</b></td><td>${e(payload.posisi)}</td></tr>`,
-    `<tr><td><b>Domisili</b></td><td>${e(payload.domisili)}</td></tr>`,
-    `<tr><td><b>File</b></td><td>${e(payload.namaFile)}</td></tr>`,
-    `<tr><td><b>Tanggal</b></td><td>${e(payload.tanggal)}</td></tr>`,
-    "</table>",
-    '<p style="color:#888;font-size:12px">Dikirim otomatis oleh aplikasi Logbook Magang.</p>',
+    detailTable([
+      ["Nama", payload.namaPengaju],
+      ["Universitas", payload.universitas],
+      ["Posisi", payload.posisi],
+      ["Domisili", payload.domisili],
+      ["File Logbook", payload.namaFile],
+      ["Tanggal", payload.tanggal],
+    ]),
   ].join("");
+
+  const html = buildEmailHtml({
+    heading: `Permohonan Tanda Tangan Logbook — Tahap ${label}`,
+    bodyHtml,
+    ctaText: "Buka & Tanda Tangan Logbook",
+    ctaUrl: payload.ctaUrl,
+  });
   return { subject, html };
 }
 

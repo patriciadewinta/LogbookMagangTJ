@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PROVINCES } from "@/lib/domisili";
+import { useToast } from "@/components/toast-provider";
 
 const inputClass =
   "h-9 w-full rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[15px] text-black outline-none focus:border-[#001192] dark:border-[#d9d9d9] dark:bg-black dark:text-white dark:focus:border-[#4258ff]";
@@ -10,9 +11,8 @@ const labelClass = "mb-1 block text-[15px] text-black dark:text-white";
 
 export default function AddInternModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [lastEmail, setLastEmail] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -33,8 +33,6 @@ export default function AddInternModal({ onClose }: { onClose: () => void }) {
     };
 
     setLoading(true);
-    setError("");
-    setSuccess(false);
     try {
       const response = await fetch("/api/od/add-intern", {
         method: "POST",
@@ -43,15 +41,15 @@ export default function AddInternModal({ onClose }: { onClose: () => void }) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success) {
-        setError(data.error || "Gagal menambahkan anak magang");
+        toast.error(data.error || "Gagal menambahkan anak magang");
       } else {
-        setSuccess(true);
+        toast.success(`Email setup password dikirim ke ${payload.email}.`);
         setLastEmail(payload.email);
         form.reset();
         router.refresh();
       }
     } catch (err) {
-      setError(
+      toast.error(
         "Terjadi kesalahan: " + (err instanceof Error ? err.message : String(err))
       );
     } finally {
@@ -89,17 +87,6 @@ export default function AddInternModal({ onClose }: { onClose: () => void }) {
             </svg>
           </button>
         </div>
-
-        {error && (
-          <p className="mb-4 rounded-[10px] border border-red-300 bg-red-50 px-3 py-2 text-[15px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            {error}
-          </p>
-        )}
-        {success && (
-          <p className="mb-4 rounded-[10px] border border-green-300 bg-green-50 px-3 py-2 text-[15px] text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
-            Berhasil! Email setup password telah dikirim ke {lastEmail}.
-          </p>
-        )}
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-4">

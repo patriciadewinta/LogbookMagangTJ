@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import Script from "next/script";
 import ThemeToggle from "@/components/theme-toggle";
+import PopupProvider from "@/components/popup";
+import ToastProvider from "@/components/toast-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,7 +33,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="fixed right-6 top-6 z-50">
           <ThemeToggle />
         </div>
-        {children}
+        <PopupProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </PopupProvider>
         <Script
           id="theme-init"
           strategy="beforeInteractive"

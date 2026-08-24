@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import OdInternTable, { InternRow } from "@/components/od-intern-table";
 import AddInternModal from "@/components/add-intern-modal";
+import { useToast } from "@/components/toast-provider";
 
 export default function ListAnakContent({
   initialInterns,
@@ -10,6 +11,7 @@ export default function ListAnakContent({
   initialInterns: InternRow[];
 }) {
   const [interns, setInterns] = useState<InternRow[]>(initialInterns);
+  const toast = useToast();
 
   // Data asli datang dari server component; setelah router.refresh() (edit/
   // hapus/tambah), prop initialInterns berubah tapi useState tidak ikut
@@ -42,7 +44,7 @@ export default function ListAnakContent({
     // Check file size (max 1MB)
     const maxSize = 1 * 1024 * 1024; // 1MB in bytes
     if (file.size > maxSize) {
-      alert("Ukuran file terlalu besar! Maksimal 1MB.");
+      toast.warning("Ukuran file terlalu besar! Maksimal 1MB.", "File Terlalu Besar");
       e.target.value = "";
       return;
     }
@@ -54,7 +56,7 @@ export default function ListAnakContent({
       "text/csv",
     ];
     if (!validTypes.includes(file.type)) {
-      alert("Format file tidak didukung. Gunakan .xlsx atau .csv");
+      toast.warning("Format file tidak didukung. Gunakan .xlsx atau .csv", "Format Tidak Didukung");
       e.target.value = "";
       return;
     }

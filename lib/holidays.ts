@@ -71,6 +71,12 @@ export async function syncHolidays(year: number): Promise<void> {
 const workdayCache = new Map<string, { value: number; at: number }>();
 const WORKDAY_TTL = 60 * 60 * 1000; // 1 jam
 
+// Dipanggil setelah CRUD hari libur dari halaman OD biar hitungan hari kerja
+// tidak memakai cache basi.
+export function clearWorkdayCache() {
+  workdayCache.clear();
+}
+
 export async function getWorkdayCount(year: number, month: number): Promise<number> {
   const key = `${year}-${month}`;
   const cached = workdayCache.get(key);

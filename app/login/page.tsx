@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import Link from "next/link";
 import { signIn } from "@/app/actions";
 import PageTransition from "@/components/page-transition";
+import PasswordInput from "@/components/password-input";
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(signIn, { error: null });
-  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center bg-[#edf7fe] px-4 py-12 dark:bg-[#262f49]">
@@ -63,36 +63,15 @@ export default function LoginPage() {
                 className="border-b border-black/30 bg-transparent pb-2 text-[17px] text-black outline-none placeholder:font-normal placeholder:opacity-30 focus:border-[#001192] dark:border-white/30 dark:text-white dark:placeholder:text-white dark:focus:border-[#4258ff]"
               />
 
-              <label
-                htmlFor="password"
-                className="mt-6 text-[17px] font-medium text-black dark:text-white"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="your password"
-                  autoComplete="current-password"
-                  required
-                  className="w-full border-b border-black/30 bg-transparent pb-2 pr-8 text-[17px] text-black outline-none placeholder:font-normal placeholder:opacity-30 focus:border-[#001192] dark:border-white/30 dark:text-white dark:placeholder:text-white dark:focus:border-[#4258ff]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
-                  title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
-                  className="absolute bottom-1 right-0 grid size-7 cursor-pointer place-items-center rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-                >
-                  <img
-                    src={showPassword ? "/assets/eye.svg" : "/assets/eye-closed.svg"}
-                    alt=""
-                    className="size-5 object-contain"
-                  />
-                </button>
-              </div>
+              <PasswordInput
+                id="password"
+                name="password"
+                label="Password"
+                placeholder="your password"
+                autoComplete="current-password"
+                required
+                labelClassName="mt-6"
+              />
 
               <a
                 href="#"

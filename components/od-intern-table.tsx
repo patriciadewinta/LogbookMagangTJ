@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteIntern, updateIntern } from "@/app/actions";
+import { usePopup } from "@/components/popup";
+import { useToast } from "@/components/toast-provider";
 import { PROVINCES } from "@/lib/domisili";
 
 export type InternRow = {
@@ -45,21 +47,19 @@ const labelClass = "mb-1 block text-[15px] text-black dark:text-white";
 
 export default function OdInternTable({ interns }: { interns: InternRow[] }) {
   const router = useRouter();
+  const { confirm } = usePopup();
+  const toast = useToast();
   const [editing, setEditing] = useState<InternRow | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function openEdit(intern: InternRow) {
-    setFormError(null);
     setEditing(intern);
   }
 
   function closeModal() {
     if (busy) return;
     setEditing(null);
-    setFormError(null);
   }
 
   async function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -68,12 +68,12 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
     const fd = new FormData(e.currentTarget);
     if (editing) fd.set("id", editing.id);
     setBusy(true);
-    setFormError(null);
     const res = await updateIntern({ error: null }, fd);
     setBusy(false);
     if (res?.error) {
-      setFormError(res.error);
+      toast.error(res.error);
     } else {
+      toast.success("Perubahan data anak magang tersimpan.");
       setEditing(null);
       router.refresh();
     }
@@ -81,27 +81,28 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
 
   async function handleDelete(intern: InternRow) {
     if (deleteBusy) return;
-    const ok = window.confirm(`Hapus akun & data anak magang "${intern.fullName}"?`);
+    const ok = await confirm({
+      title: "Hapus Anak Magang",
+      message: `Hapus akun & data anak magang "${intern.fullName}"?`,
+      confirmLabel: "Hapus",
+      danger: true,
+    });
     if (!ok) return;
     setDeleteBusy(intern.id);
-    setDeleteError(null);
     const fd = new FormData();
     fd.set("id", intern.id);
     const res = await deleteIntern(fd);
     setDeleteBusy(null);
     if (res?.error) {
-      setDeleteError(res.error);
+      toast.error(res.error);
     } else {
+      toast.success(`${intern.fullName} dihapus.`);
       router.refresh();
     }
   }
 
   return (
     <>
-      {deleteError && (
-        <p className="mt-8 text-[15px] text-red-600 dark:text-red-400">{deleteError}</p>
-      )}
-
       <div className="mt-6 overflow-x-auto rounded-[10px] border border-[#d9d9d9] bg-white dark:border-white/10 dark:bg-black">
         {interns.length > 0 ? (
           <table className="w-full min-w-[900px] border-collapse text-left">
@@ -222,12 +223,6 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                 </svg>
               </button>
             </div>
-
-            {formError && (
-              <p className="mb-4 rounded-[10px] border border-red-300 bg-red-50 px-3 py-2 text-[15px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-                {formError}
-              </p>
-            )}
 
             <form
               key={editing.id}

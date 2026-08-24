@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ViewTransition } from "react";
 import Link from "next/link";
 import { getApprovers, submitLogbook } from "@/app/actions";
@@ -8,61 +8,23 @@ import PageTransition from "@/components/page-transition";
 
 type Approver = { id: string; name: string; role: string };
 
-function UploadBox({
-  label,
-  accept,
-  hint,
-  file,
-  inputName,
-  onFile,
-}: {
-  label: string;
-  accept: string;
-  hint: string;
-  file: File | null;
-  inputName: string;
-  onFile: (f: File) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
+type Entry = { id: number; tanggal: string; kegiatan: string };
 
-  return (
-    <div>
-      <p className="text-[20px] font-semibold text-black dark:text-white">{label}</p>
-      <div
-        onClick={() => inputRef.current?.click()}
-        className="mt-2 flex h-[76px] w-full max-w-full cursor-pointer items-center gap-4 overflow-hidden rounded-[10px] border border-dashed border-[#d9d9d9] bg-white px-3 py-4 text-left transition-colors hover:border-[#001192] dark:border-white/25 dark:bg-black dark:hover:border-[#4258ff]"
-      >
-        <div className="grid size-11 shrink-0 place-items-center rounded-[10px] bg-[#deedf8]">
-          <img
-            src="/assets/pdf-icon.png"
-            alt=""
-            className="size-9 object-contain"
-          />
-        </div>
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <p className="truncate whitespace-nowrap text-[18px] text-black dark:text-white" title={file?.name}>
-            {file?.name || "Klik atau seret file di sini"}
-          </p>
-          <p className="truncate whitespace-nowrap text-[14px] text-black/30 dark:text-white/30">{hint}</p>
-        </div>
-        <span className="shrink-0 rounded-[10px] bg-[#deedf8] px-4 py-1.5 text-[16px] font-light text-[#001192] dark:bg-white/10 dark:text-[#4258ff]">
-          Pilih File
-        </span>
-      </div>
-      <input
-        ref={inputRef}
-        name={inputName}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onFile(f);
-        }}
-      />
-    </div>
-  );
+const hariFmt = new Intl.DateTimeFormat("id-ID", { weekday: "long" });
+
+let nextEntryId = 1;
+function emptyEntry(): Entry {
+  return { id: nextEntryId++, tanggal: "", kegiatan: "" };
 }
+
+function hariLabel(tanggal: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return "";
+  const d = new Date(`${tanggal}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  return hariFmt.format(d);
+}
+
+const STEPS = ["Kegiatan Harian", "Persetujuan"] as const;
 
 function SelectField({
   label,
@@ -115,7 +77,8 @@ function SelectField({
 }
 
 export default function InputLogbookPage() {
-  const [logbook, setLogbook] = useState<File | null>(null);
+  const [step, setStep] = useState(0);
+  const [entries, setEntries] = useState<Entry[]>([emptyEntry()]);
   const [approvers, setApprovers] = useState<Approver[]>([]);
   const [pembimbing, setPembimbing] = useState("");
   const [kadep, setKadep] = useState("");
@@ -123,7 +86,6 @@ export default function InputLogbookPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState("");
-  const [hadirCount, setHadirCount] = useState("");
   const [hasCuti, setHasCuti] = useState(false);
 
   useEffect(() => {
@@ -137,13 +99,71 @@ export default function InputLogbookPage() {
   const byRole = (role: string) =>
     approvers.filter((a) => a.role === role).map((a) => ({ id: a.id, name: a.name }));
 
-  const onSubmit = async (e: React.FormEvent) => {
+  // Hari hadir = akumulasi baris kegiatan yang terisi lengkap.
+  const filledEntries = entries.filter((en) => en.tanggal && en.kegiatan.trim());
+
+  const updateEntry = (id: number, patch: Partial<Entry>) => {
+    setEntries((prev) => {
+      const next = prev.map((e) => (e.id === id ? { ...e, ...patch } : e));
+      // Auto-append row kosong saat baris terakhir terisi penuh.
+      const last = next[next.length - 1];
+      if (next.length < 31 && last && last.tanggal && last.kegiatan.trim()) {
+        next.push(emptyEntry());
+      }
+      return next;
+    });
+  };
+
+  const removeEntry = (id: number) => {
+    setEntries((prev) => (prev.length > 1 ? prev.filter((e) => e.id !== id) : prev));
+  };
+
+  const addEntry = () => {
+    setEntries((prev) => (prev.length < 31 ? [...prev, emptyEntry()] : prev));
+  };
+
+  const validateStep1 = () => {
+    if (!period) {
+      setError("Pilih periode logbook.");
+      return false;
+    }
+    if (filledEntries.length === 0) {
+      setError("Isi minimal satu kegiatan harian.");
+      return false;
+    }
+    const incomplete = entries.filter((en) => en.tanggal || en.kegiatan.trim());
+    if (incomplete.some((en) => !en.tanggal || !en.kegiatan.trim())) {
+      setError("Ada baris kegiatan yang belum lengkap (tanggal dan kegiatan wajib diisi).");
+      return false;
+    }
+    return true;
+  };
+
+  const goNext = () => {
+    setError(null);
+    if (validateStep1()) setStep(1);
+  };
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+
+    if (!pembimbing || !kadep || !kadiv) {
+      setError("Pilih pembimbing, kepala departemen, dan kepala divisi.");
+      return;
+    }
+
     setLoading(true);
-    const res = await submitLogbook(new FormData(e.currentTarget as HTMLFormElement));
-    if (res?.error) setError(res.error);
-    setLoading(false);
+    const fd = new FormData(e.currentTarget);
+    fd.set(
+      "entries",
+      JSON.stringify(filledEntries.map((en) => ({ tanggal: en.tanggal, kegiatan: en.kegiatan.trim() })))
+    );
+    const res = await submitLogbook(fd);
+    if (res?.error) {
+      setError(res.error);
+      setLoading(false);
+    }
   };
 
   return (
@@ -179,11 +199,52 @@ export default function InputLogbookPage() {
       >
       <div className="w-full max-w-[1026px] rounded-[10px] border border-[#d9d9d9] bg-white p-6 shadow-[0px_0px_48px_0px_rgba(0,0,0,0.35)] sm:p-10 dark:border-white/10 dark:bg-black">
         <h1 className="text-[28px] font-bold leading-tight text-black dark:text-white sm:text-[40px]">
-          Upload your logbook!
+          Isi logbook kamu!
         </h1>
         <p className="mt-2 max-w-[720px] text-[18px] font-light leading-snug text-black dark:text-white sm:text-[20px]">
-          Unggah logbook dan pilih pembimbing, kepala departemen, serta kepala divisi untuk melengkapi report magang
+          Masukkan kegiatan harian dan pilih approver — logbook PDF akan dibuat otomatis
         </p>
+
+        {/* Progress steps */}
+        <div className="mt-6 flex justify-center">
+          <div className="flex w-full max-w-[560px] items-center gap-2">
+            {STEPS.map((label, i) => (
+              <div key={label} className="flex shrink-0 items-center gap-2">
+                <div
+                  className={`grid size-8 shrink-0 place-items-center rounded-full text-[15px] font-bold transition-colors ${
+                    i < step
+                      ? "bg-[#001192] text-white dark:bg-[#4258ff]"
+                      : i === step
+                        ? "border-2 border-[#001192] text-[#001192] dark:border-[#4258ff] dark:text-[#4258ff]"
+                        : "border-2 border-[#d9d9d9] text-black/30 dark:border-white/25 dark:text-white/30"
+                  }`}
+                >
+                  {i < step ? (
+                    <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    i + 1
+                  )}
+                </div>
+                <span
+                  className={`text-[15px] font-medium ${
+                    i <= step ? "text-black dark:text-white" : "text-black/30 dark:text-white/30"
+                  }`}
+                >
+                  {label}
+                </span>
+                {i < STEPS.length - 1 && (
+                  <div
+                    className={`h-0.5 flex-1 rounded-full ${
+                      i < step ? "bg-[#001192] dark:bg-[#4258ff]" : "bg-[#d9d9d9] dark:bg-white/25"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
 
         <form onSubmit={onSubmit} className="mt-8">
           {error && (
@@ -191,40 +252,78 @@ export default function InputLogbookPage() {
               {error}
             </p>
           )}
-          <div className="flex flex-col gap-8 lg:flex-row lg:gap-10">
-            <div className="flex flex-1 flex-col gap-5">
-              <UploadBox
-                label="Logbook Magang"
-                accept=".pdf,.xlsx,.csv"
-                hint="Format PDF, XLSX, atau CSV, maks. 1MB"
-                file={logbook}
-                inputName="logbook_file"
-                onFile={setLogbook}
-              />
 
-              <div className="border-t border-[#e0e0e0] pt-5 dark:border-white/10">
+          {step === 0 ? (
+            <div className="flex flex-col gap-5">
+              <div>
                 <p className="text-[20px] font-semibold text-black dark:text-white">Periode Logbook</p>
                 <input
                   type="month"
                   name="period"
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[16px] text-black outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
+                  className="mt-2 h-11 w-full max-w-[280px] rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[16px] text-black outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
                 />
               </div>
 
-              <div>
-                <p className="text-[20px] font-semibold text-black dark:text-white">Jumlah Hari Hadir</p>
-                <input
-                  type="number"
-                  name="hadir_count"
-                  value={hadirCount}
-                  onChange={(e) => setHadirCount(e.target.value)}
-                  placeholder="Masukkan jumlah hari hadir"
-                  min={0}
-                  required
-                  className="mt-2 h-11 w-full rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[16px] text-black outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
-                />
+              <div className="border-t border-[#e0e0e0] pt-5 dark:border-white/10">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[20px] font-semibold text-black dark:text-white">Kegiatan Harian</p>
+                  <p className="rounded-[10px] bg-[#edf7fe] px-3 py-1.5 text-[15px] font-medium text-[#001192] dark:bg-white/10 dark:text-[#4258ff]">
+                    Jumlah hari hadir: {filledEntries.length} (otomatis dari kegiatan)
+                  </p>
+                </div>
+                <div className="mt-2 flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
+                  {entries.map((en, i) => (
+                    <div
+                      key={en.id}
+                      className="rounded-[10px] border border-[#e0e0e0] bg-[#f8fbfe] p-3 dark:border-white/10 dark:bg-white/5"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[15px] font-semibold text-[#001192] dark:text-[#4258ff]">
+                          {i + 1}
+                        </span>
+                        <input
+                          type="date"
+                          value={en.tanggal}
+                          onChange={(e) => updateEntry(en.id, { tanggal: e.target.value })}
+                          className="h-11 w-full max-w-[180px] rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[16px] text-black outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
+                        />
+                        <span className="min-w-[90px] text-[14px] text-black/50 dark:text-white/50">
+                          {hariLabel(en.tanggal)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeEntry(en.id)}
+                          disabled={entries.length === 1}
+                          aria-label="Hapus baris"
+                          title="Hapus baris"
+                          className="ml-auto grid size-9 shrink-0 cursor-pointer place-items-center rounded-[10px] text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-red-950"
+                        >
+                          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      </div>
+                      <textarea
+                        value={en.kegiatan}
+                        onChange={(e) => updateEntry(en.id, { kegiatan: e.target.value })}
+                        placeholder="Tuliskan kegiatan pada hari ini"
+                        rows={2}
+                        maxLength={500}
+                        className="mt-2 w-full resize-y rounded-[10px] border border-[#d9d9d9] bg-white px-3 py-2 text-[15px] text-black outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addEntry}
+                  disabled={entries.length >= 31}
+                  className="mt-3 cursor-pointer rounded-[10px] border border-[#001192] px-4 py-2 text-[15px] font-medium text-[#001192] transition-colors hover:bg-[#001192]/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#4258ff] dark:text-[#4258ff] dark:hover:bg-[#4258ff]/10"
+                >
+                  + Tambah Baris
+                </button>
               </div>
 
               <label className="flex cursor-pointer items-center gap-3 text-[18px] font-medium text-black dark:text-white">
@@ -239,8 +338,8 @@ export default function InputLogbookPage() {
               </label>
 
               {hasCuti && (
-                <div className="flex flex-col gap-5">
-                  <div>
+                <div className="flex flex-col gap-5 sm:flex-row">
+                  <div className="flex-1">
                     <p className="text-[20px] font-semibold text-black dark:text-white">Jumlah Hari Cuti/Izin</p>
                     <input
                       type="number"
@@ -250,7 +349,7 @@ export default function InputLogbookPage() {
                       className="mt-2 h-11 w-full rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[16px] text-black outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
                     />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-[20px] font-semibold text-black dark:text-white">Alasan Cuti/Izin</p>
                     <input
                       type="text"
@@ -261,43 +360,69 @@ export default function InputLogbookPage() {
                   </div>
                 </div>
               )}
-            </div>
 
-            <div className="flex flex-1 flex-col gap-5">
-              <SelectField
-                label="Nama Pembimbing"
-                name="pembimbing_id"
-                placeholder="Pilih Nama Pembimbing"
-                value={pembimbing}
-                onChange={setPembimbing}
-                options={byRole("pembimbing")}
-              />
-              <SelectField
-                label="Nama Kepala Departemen"
-                name="kadep_id"
-                placeholder="Pilih Nama Kepala Departemen"
-                value={kadep}
-                onChange={setKadep}
-                options={byRole("kadep")}
-              />
-              <SelectField
-                label="Nama Kepala Divisi"
-                name="kadiv_id"
-                placeholder="Pilih Nama Kepala Divisi"
-                value={kadiv}
-                onChange={setKadiv}
-                options={byRole("kadiv")}
-              />
+              <button
+                type="button"
+                onClick={goNext}
+                className="mt-3 block w-full cursor-pointer rounded-[10px] bg-[#001192] py-3 text-center text-[20px] font-bold text-white transition-opacity hover:opacity-90 dark:bg-[#4258ff]"
+              >
+                Lanjut Pilih Approver
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-5 lg:flex-row">
+                <div className="flex flex-1 flex-col gap-5">
+                  <SelectField
+                    label="Nama Pembimbing"
+                    name="pembimbing_id"
+                    placeholder="Pilih Nama Pembimbing"
+                    value={pembimbing}
+                    onChange={setPembimbing}
+                    options={byRole("pembimbing")}
+                  />
+                </div>
+                <div className="flex flex-1 flex-col gap-5">
+                  <SelectField
+                    label="Nama Kepala Departemen"
+                    name="kadep_id"
+                    placeholder="Pilih Nama Kepala Departemen"
+                    value={kadep}
+                    onChange={setKadep}
+                    options={byRole("kadep")}
+                  />
+                </div>
+                <div className="flex flex-1 flex-col gap-5">
+                  <SelectField
+                    label="Nama Kepala Divisi"
+                    name="kadiv_id"
+                    placeholder="Pilih Nama Kepala Divisi"
+                    value={kadiv}
+                    onChange={setKadiv}
+                    options={byRole("kadiv")}
+                  />
+                </div>
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-8 block w-full cursor-pointer rounded-[10px] bg-[#001192] py-3 text-center text-[20px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:bg-[#4258ff]"
-          >
-            {loading ? "Mengunggah..." : "Upload Berkas"}
-          </button>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => setStep(0)}
+                  disabled={loading}
+                  className="cursor-pointer rounded-[10px] border border-[#001192] px-8 py-3 text-[18px] font-bold text-[#001192] transition-opacity hover:opacity-90 disabled:opacity-60 dark:border-[#4258ff] dark:text-[#4258ff]"
+                >
+                  Kembali
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 cursor-pointer rounded-[10px] bg-[#001192] py-3 text-center text-[20px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:bg-[#4258ff]"
+                >
+                  {loading ? "Membuat Logbook..." : "Buat & Kirim Logbook"}
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       </div>
       </ViewTransition>
