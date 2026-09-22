@@ -53,23 +53,28 @@ export async function sendPasswordSetEmail({
 
   const bodyHtml = `
     <p>Yth. <b>${escapeEmailHtml(name)}</b>,</p>
-    <p>Anda telah terdaftar sebagai peserta magang di unit kerja kami. Untuk
-    melanjutkan proses magang, Anda wajib membuat akun dengan menetapkan
-    password melalui tombol di bawah ini.</p>
-    <p>Link ini bersifat pribadi dan berlaku selama <b>7 hari</b>. Setelah masa
-    berlaku habis, silakan hubungi petugas OD untuk mendapatkan link baru.</p>
+    <p>Anda terdaftar sebagai peserta magang di PT Transportasi Jakarta.
+    Akun Logbook Magang Anda sudah dibuat oleh petugas OD. Silakan
+    <b>buat password</b> untuk akun tersebut melalui tombol di bawah ini —
+    tanpa password, Anda belum bisa login.</p>
+    <p>Tombol di atas mengarah ke halaman <b>Pembuatan Password</b>
+    (bukan transaksi apa pun). Link berlaku <b>7 hari</b> dan hanya bisa
+    dipakai satu kali. Kalau sudah kedaluwarsa, minta link baru ke petugas OD.</p>
+    <p style="color: #8a8a8a; font-size: 13px;">Email ini dikirim otomatis dari
+    sistem Logbook Magang. Kalau Anda merasa tidak pernah mendaftar magang di
+    PT Transportasi Jakarta, abaikan saja email ini.</p>
   `;
 
   const html = buildEmailHtml({
-    heading: "Pembuatan Akun Logbook Magang",
+    heading: "Pembuatan Password Akun Logbook Magang",
     bodyHtml,
-    ctaText: "Set Password",
+    ctaText: "Buat Password Sekarang",
     ctaUrl: setPasswordUrl,
   });
 
   return sendMail({
     to: email,
-    subject: "Pembuatan Akun Logbook Magang TransJakarta",
+    subject: `Buat password akun Logbook Magang Anda, ${name}`,
     html,
   });
 }

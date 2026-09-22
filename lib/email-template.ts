@@ -1,8 +1,6 @@
 // Template dasar email resmi Logbook Magang TJ.
 // Table-based + inline style karena email client (Gmail, Outlook) tidak
 // mendukung Tailwind/CSS eksternal.
-import fs from "fs";
-import path from "path";
 
 export function escapeEmailHtml(value: string): string {
   return value
@@ -24,21 +22,12 @@ const FONT = "Arial, Helvetica, sans-serif";
 const BLUE = "#001192";
 const BG = "#edf7fe";
 
-// Logo di-embed sebagai data URI supaya tetap render walau diakses dari
-// email client (URL lokalhost tidak bisa dibuka penerima). Kalau file tidak
-// bisa dibaca (mis. serverless tanpa folder public), fallback ke URL publik.
-let logoDataUriCache: string | null = null;
-
-function getLogoDataUri() {
-  if (logoDataUriCache) return logoDataUriCache;
-  try {
-    const filePath = path.join(process.cwd(), "public", "assets", "logo-tj.png");
-    const buf = fs.readFileSync(filePath);
-    logoDataUriCache = `data:image/png;base64,${buf.toString("base64")}`;
-  } catch {
-    logoDataUriCache = `${process.env.NEXT_PUBLIC_APP_URL}/assets/logo-tj.png`;
-  }
-  return logoDataUriCache;
+// Logo pakai URL publik dari NEXT_PUBLIC_APP_URL. Tidak dibaca via fs karena
+// folder public/ tidak ikut bundle serverless function di Vercel. Gambar
+// eksternal bisa diblokir Gmail sampai penerima klik "Tampilkan gambar".
+function getLogoUrl() {
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  return base ? `${base}/assets/logo-tj.png` : "";
 }
 
 export function buildEmailHtml({
@@ -47,22 +36,32 @@ export function buildEmailHtml({
   ctaText,
   ctaUrl,
 }: EmailShellOptions): string {
-  const logoUrl = getLogoDataUri();
+  const logoUrl = getLogoUrl();
 
+  // Tombol dibuat table-based ("bulletproof button"): <a> bergaya inline-block
+  // sering tidak bisa diklik di Outlook desktop & sebagian webmail. Dengan
+  // pembungkus <table> + bgcolor, area kliknya ikut ter-render dan tetap
+  // tampil walau CSS di-strip.
   const cta =
     ctaText && ctaUrl
       ? `
       <tr>
-        <td style="padding: 0 32px 8px 32px;">
-          <a href="${ctaUrl}" style="display: inline-block; background: ${BLUE}; color: #ffffff; font-family: ${FONT}; font-size: 16px; font-weight: bold; text-decoration: none; padding: 14px 36px; border-radius: 10px;">
-            ${escapeEmailHtml(ctaText)}
-          </a>
+        <td align="left" style="padding: 0 32px 8px 32px;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center" bgcolor="${BLUE}" style="border-radius: 10px;">
+                <a href="${ctaUrl}" target="_blank" role="button" style="display: inline-block; background-color: ${BLUE}; color: #ffffff; font-family: ${FONT}; font-size: 16px; font-weight: bold; line-height: 20px; text-decoration: none; padding: 14px 36px; border-radius: 10px; mso-padding-alt: 14px 36px;">
+                  ${escapeEmailHtml(ctaText)}
+                </a>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
       <tr>
         <td style="padding: 0 32px 32px 32px; font-family: ${FONT}; font-size: 12px; color: #8a8a8a; line-height: 18px;">
           Jika tombol tidak berfungsi, salin dan buka link berikut di browser:<br/>
-          <a href="${ctaUrl}" style="color: ${BLUE}; word-break: break-all;">${ctaUrl}</a>
+          <a href="${ctaUrl}" target="_blank" style="color: ${BLUE}; word-break: break-all;">${ctaUrl}</a>
         </td>
       </tr>`
       : `<tr><td style="height: 24px; line-height: 24px; font-size: 0;">&nbsp;</td></tr>`;
@@ -80,9 +79,13 @@ export function buildEmailHtml({
             <td style="padding: 28px 32px; border-bottom: 3px solid ${BLUE};">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding-right: 14px; vertical-align: middle;">
+                  ${
+                    logoUrl
+                      ? `<td style="padding-right: 14px; vertical-align: middle;">
                     <img src="${logoUrl}" alt="Logo TJ" width="48" height="48" style="display: block; border-radius: 10px;"/>
-                  </td>
+                  </td>`
+                      : ""
+                  }
                   <td style="vertical-align: middle;">
                     <div style="font-family: ${FONT}; font-size: 18px; font-weight: bold; color: ${BLUE}; letter-spacing: 0.5px;">LOGBOOK MAGANG</div>
                     <div style="font-family: ${FONT}; font-size: 12px; color: #8a8a8a; letter-spacing: 2px;">TJ</div>
