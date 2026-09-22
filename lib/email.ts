@@ -1,7 +1,9 @@
 import { Resend } from 'resend';
 import { buildEmailHtml, escapeEmailHtml } from './email-template';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Strip BOM/whitespace yang bisa kebawa saat copy-paste env var (mis. di Vercel)
+const apiKey = process.env.RESEND_API_KEY?.replace(/^﻿/, "").trim();
+const resend = new Resend(apiKey);
 
 export interface SendPasswordSetEmailParams {
   email: string;
