@@ -1,0 +1,9 @@
+# Database Supabase (untuk Prisma)
+# PENTING: pakai session pooler (port 5432), BUKAN transaction pooler (6543).
+# Transaction pooler terukur 375ms/query vs 76ms di session mode — bikin semua
+# halaman lambat. Transaction pooler hanya untuk serverless/edge.
+# connection_limit=5 wajib: pooler session mode Supabase cuma kasih 15 klien;
+# pool default Prisma (cpu*2+1) gampang lewat itu → error EMAXCONNSESSION.
+DATABASE_URL="postgresql://postgres.byuodkufxfilsxzqikha:logbookmagang@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require&connection_limit=5&pool_timeout=20"
+# Koneksi langsung untuk prisma migrate / db push.
+DIRECT_URL="postgresql://postgres.byuodkufxfilsxzqikha:logbookmagang@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require"
