@@ -19,19 +19,7 @@ export default function Toast({ duration = 4500 }: { duration?: number }) {
         hidden ? "toast-out" : "toast-in"
       }`}
     >
-      <div className="relative overflow-hidden rounded-2xl p-3 shadow-[0px_8px_40px_0px_rgba(0,0,0,0.12)]">
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[#262626] mix-blend-color-dodge"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[rgba(245,245,245,0.67)]"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[rgba(0,0,0,0.2)] mix-blend-screen"
-        />
+      <div className="relative overflow-hidden rounded-2xl border border-white/60 bg-white/60 p-3 shadow-[0px_8px_40px_0px_rgba(0,0,0,0.12)] backdrop-blur-2xl">
         <div className="relative flex items-start gap-3">
           <img
             src="/assets/check-mark.png"

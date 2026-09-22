@@ -1,6 +1,8 @@
 // Template dasar email resmi Logbook Magang TJ.
 // Table-based + inline style karena email client (Gmail, Outlook) tidak
 // mendukung Tailwind/CSS eksternal.
+import fs from "fs";
+import path from "path";
 
 export function escapeEmailHtml(value: string): string {
   return value
@@ -22,13 +24,30 @@ const FONT = "Arial, Helvetica, sans-serif";
 const BLUE = "#001192";
 const BG = "#edf7fe";
 
+// Logo di-embed sebagai data URI supaya tetap render walau diakses dari
+// email client (URL lokalhost tidak bisa dibuka penerima). Kalau file tidak
+// bisa dibaca (mis. serverless tanpa folder public), fallback ke URL publik.
+let logoDataUriCache: string | null = null;
+
+function getLogoDataUri() {
+  if (logoDataUriCache) return logoDataUriCache;
+  try {
+    const filePath = path.join(process.cwd(), "public", "assets", "logo-tj.png");
+    const buf = fs.readFileSync(filePath);
+    logoDataUriCache = `data:image/png;base64,${buf.toString("base64")}`;
+  } catch {
+    logoDataUriCache = `${process.env.NEXT_PUBLIC_APP_URL}/assets/logo-tj.png`;
+  }
+  return logoDataUriCache;
+}
+
 export function buildEmailHtml({
   heading,
   bodyHtml,
   ctaText,
   ctaUrl,
 }: EmailShellOptions): string {
-  const logoUrl = `${process.env.NEXT_PUBLIC_APP_URL}/assets/logo-tj.png`;
+  const logoUrl = getLogoDataUri();
 
   const cta =
     ctaText && ctaUrl

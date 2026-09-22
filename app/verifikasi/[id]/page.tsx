@@ -37,7 +37,7 @@ function CheckIcon({ color }: { color: string }) {
 
 function ClockIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="size-6 shrink-0 text-black/25 dark:text-white/30" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <svg viewBox="0 0 24 24" className="size-6 shrink-0 text-black/25 dark:text-white/55" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
     </svg>
@@ -98,7 +98,7 @@ export default async function VerifikasiPage({
   const card =
     "rounded-2xl bg-white dark:bg-[#2c2c2e]";
   const label =
-    "text-[13px] leading-6 text-[#3c3c43]/60 dark:text-white/50";
+    "text-[13px] leading-6 text-[#3c3c43]/60 dark:text-white/70";
 
   return (
     <div className="min-h-screen bg-[#f2f2f7] py-10 dark:bg-black" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" }}>
@@ -124,18 +124,18 @@ export default async function VerifikasiPage({
           <h1 className="mt-5 text-[28px] font-bold leading-tight tracking-tight text-black dark:text-white">
             {headline}
           </h1>
-          <p className="mt-1.5 max-w-[300px] text-[15px] leading-snug text-[#3c3c43]/70 dark:text-white/60">
+          <p className="mt-1.5 max-w-[300px] text-[15px] leading-snug text-[#3c3c43]/70 dark:text-white/75">
             {subline}
           </p>
           <p className="mt-3 text-[17px] font-semibold text-black dark:text-white">
             {profile?.fullName ?? "-"}
           </p>
-          <p className="text-[14px] text-[#3c3c43]/60 dark:text-white/50">{periode}</p>
+          <p className="text-[14px] text-[#3c3c43]/60 dark:text-white/70">{periode}</p>
         </header>
 
         {/* Identitas */}
         <section className="mt-8">
-          <h2 className="mb-2 px-4 text-[13px] font-semibold uppercase tracking-wide text-[#3c3c43]/50 dark:text-white/40">
+          <h2 className="mb-2 px-4 text-[13px] font-semibold uppercase tracking-wide text-[#3c3c43]/50 dark:text-white/65">
             Identitas Peserta
           </h2>
           <dl className={`${card} divide-y divide-black/[0.07] dark:divide-white/[0.1]`}>
@@ -156,7 +156,7 @@ export default async function VerifikasiPage({
 
         {/* Dibuat oleh */}
         <section className="mt-6">
-          <h2 className="mb-2 px-4 text-[13px] font-semibold uppercase tracking-wide text-[#3c3c43]/50 dark:text-white/40">
+          <h2 className="mb-2 px-4 text-[13px] font-semibold uppercase tracking-wide text-[#3c3c43]/50 dark:text-white/65">
             Dibuat Oleh
           </h2>
           <div className={`${card} flex items-center gap-3 px-4 py-3`}>
@@ -167,9 +167,9 @@ export default async function VerifikasiPage({
               <p className="truncate text-[15px] font-semibold text-black dark:text-white">
                 {profile?.fullName ?? "-"}
               </p>
-              <p className="text-[13px] text-[#3c3c43]/60 dark:text-white/50">Peserta Magang</p>
+              <p className="text-[13px] text-[#3c3c43]/60 dark:text-white/70">Peserta Magang</p>
             </div>
-            <p className="shrink-0 text-right text-[12px] leading-4 text-[#3c3c43]/60 dark:text-white/50">
+            <p className="shrink-0 text-right text-[12px] leading-4 text-[#3c3c43]/60 dark:text-white/70">
               {fmtWIB(submission.createdAt)}
             </p>
           </div>
@@ -177,7 +177,7 @@ export default async function VerifikasiPage({
 
         {/* Riwayat persetujuan */}
         <section className="mt-6">
-          <h2 className="mb-2 px-4 text-[13px] font-semibold uppercase tracking-wide text-[#3c3c43]/50 dark:text-white/40">
+          <h2 className="mb-2 px-4 text-[13px] font-semibold uppercase tracking-wide text-[#3c3c43]/50 dark:text-white/65">
             Ditandatangani Oleh
           </h2>
           <div className={`${card} divide-y divide-black/[0.07] dark:divide-white/[0.1]`}>
@@ -191,7 +191,7 @@ export default async function VerifikasiPage({
                     <p className="truncate text-[15px] font-semibold text-black dark:text-white">
                       {token?.approverName ?? namaByTahap[t] ?? "-"}
                     </p>
-                    <p className="text-[13px] text-[#3c3c43]/60 dark:text-white/50">
+                    <p className="text-[13px] text-[#3c3c43]/60 dark:text-white/70">
                       {TAHAP_LABEL[t]}
                     </p>
                   </div>
@@ -199,7 +199,7 @@ export default async function VerifikasiPage({
                     className={`shrink-0 text-right text-[12px] leading-4 ${
                       approved
                         ? "font-semibold text-[#34c759]"
-                        : "text-[#3c3c43]/50 dark:text-white/40"
+                        : "text-[#3c3c43]/50 dark:text-white/65"
                     }`}
                   >
                     {approved ? fmtWIB(approved) : "Menunggu"}
@@ -212,7 +212,7 @@ export default async function VerifikasiPage({
 
         {/* Trust footer */}
         <footer className="mt-8 px-4 text-center">
-          <p className="text-[12px] leading-5 text-[#3c3c43]/50 dark:text-white/40">
+          <p className="text-[12px] leading-5 text-[#3c3c43]/50 dark:text-white/65">
             Data ini diverifikasi langsung dari basis data resmi Logbook Magang TJ.
             Hasil pemindaian mencerminkan status terkini pada {fmtWIB(new Date())}.
           </p>

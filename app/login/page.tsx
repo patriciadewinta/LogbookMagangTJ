@@ -73,12 +73,12 @@ export default function LoginPage() {
                 labelClassName="mt-6"
               />
 
-              <a
-                href="#"
+              <Link
+                href="/login/lupa-password"
                 className="mt-3 self-end text-[17px] font-medium text-[#001192] dark:text-[#4258ff]"
               >
                 Lupa Password?
-              </a>
+              </Link>
 
               <button
                 type="submit"

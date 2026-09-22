@@ -214,11 +214,11 @@ export default function DatePicker({
         aria-label={ariaLabel}
         onClick={toggleOpen}
         className={`flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-left text-[16px] outline-none transition-colors focus:border-[#001192] disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/25 dark:bg-black dark:focus:border-[#4258ff] ${
-          value ? "text-black dark:text-white" : "text-black/30 dark:text-white/30"
+          value ? "text-black dark:text-white" : "text-black/30 dark:text-white/55"
         }`}
       >
         <span>{selected ? formatLabel(selected) : placeholder}</span>
-        <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-black/40 dark:text-white/40" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-black/40 dark:text-white/65" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="3" y="5" width="18" height="16" rx="2" />
           <path d="M8 3v4M16 3v4M3 11h18" strokeLinecap="round" />
         </svg>
@@ -291,7 +291,7 @@ export default function DatePicker({
                           ? isToday
                             ? "font-semibold text-[#007aff] dark:text-[#4258ff]"
                             : "text-black dark:text-white"
-                          : "text-[#c7c7cc] dark:text-white/20"
+                          : "text-[#c7c7cc] dark:text-white/50"
                     } ${isDisabled ? "cursor-not-allowed opacity-30" : "cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"}`}
                   >
                     {cell.day}

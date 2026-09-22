@@ -65,7 +65,7 @@ export default function DownloadButton({
       type="button"
       onClick={handleClick}
       disabled={!path || pending}
-      className={`inline-flex items-center gap-1.5 rounded-[10px] bg-[#00D4D8] px-4 py-1.5 text-[14px] font-bold text-[#003334] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${className ?? ""}`}
+      className={`inline-flex items-center gap-1.5 rounded-[10px] bg-[#00D4D8] px-4 py-1.5 text-[14px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${className ?? ""}`}
     >
       {icon}
       {pending ? "Mengunduh..." : label}

@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <div className="fixed right-6 top-6 z-50">
+        <div className="fixed right-6 top-6 z-[90]">
           <ThemeToggle />
         </div>
         <PopupProvider>
@@ -40,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           id="theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem("theme");var t=s?s==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;if(t)document.documentElement.classList.add("dark")}catch(e){}})();`,
+            __html: `(function(){try{var s=localStorage.getItem("theme");if(s==="dark")document.documentElement.classList.add("dark")}catch(e){}})();`,
           }}
         />
       </body>

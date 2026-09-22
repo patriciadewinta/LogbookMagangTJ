@@ -143,7 +143,7 @@ export default function HolidayTabs({ holidays }: { holidays: HolidayRow[] }) {
     `flex h-9 shrink-0 items-center rounded-t-[10px] border border-b-0 px-4 text-[12px] transition-colors sm:h-10 sm:px-[26px] sm:text-[13px] ${
       tab === t.key
         ? "border-[#e6ebf1] bg-white font-bold text-[#15588e] shadow-[0_-3px_10px_rgba(22,73,116,0.04)] dark:border-white/10 dark:bg-[#2a3350] dark:text-[#8fb8ff]"
-        : "border-[#e6ebf1] bg-[#eef1f5] font-semibold text-[#8a93a0] hover:text-[#15588e] dark:border-white/10 dark:bg-[#1f2840] dark:text-white/50 dark:hover:text-[#8fb8ff]"
+        : "border-[#e6ebf1] bg-[#eef1f5] font-semibold text-[#8a93a0] hover:text-[#15588e] dark:border-white/10 dark:bg-[#1f2840] dark:text-white/70 dark:hover:text-[#8fb8ff]"
     }`;
 
   const thCls = "h-[46px] px-[25px] text-left text-[13px] font-[650] text-[#657080]";
@@ -381,7 +381,7 @@ export default function HolidayTabs({ holidays }: { holidays: HolidayRow[] }) {
                 type="button"
                 onClick={closeModal}
                 aria-label="Tutup"
-                className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"
+                className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/75 dark:hover:bg-white/10"
               >
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
@@ -432,7 +432,7 @@ export default function HolidayTabs({ holidays }: { holidays: HolidayRow[] }) {
                   </select>
                   <svg
                     viewBox="0 0 24 24"
-                    className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-black/50 dark:text-white/50"
+                    className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-black/50 dark:text-white/70"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"

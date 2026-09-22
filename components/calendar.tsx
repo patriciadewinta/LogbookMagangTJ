@@ -29,13 +29,13 @@ export default function Calendar() {
   const nextMonth = () => setView(new Date(year, month + 1, 1));
 
   return (
-    <div className="w-full max-w-[292px] shrink-0 rounded-2xl border border-[#d9d9d9] bg-white/80 p-4 shadow-md dark:border-white/10 dark:bg-black/50 lg:mx-0 mx-auto">
+    <div className="w-full max-w-[292px] shrink-0 rounded-2xl border border-[#d9d9d9] bg-white/80 p-4 shadow-md dark:border-white/10 dark:bg-black/100 lg:mx-0 mx-auto">
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={prevMonth}
           aria-label="Bulan sebelumnya"
-          className="grid size-9 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"
+          className="grid size-9 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/75 dark:hover:bg-white/10"
         >
           <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -48,7 +48,7 @@ export default function Calendar() {
           type="button"
           onClick={nextMonth}
           aria-label="Bulan berikutnya"
-          className="grid size-9 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"
+          className="grid size-9 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/75 dark:hover:bg-white/10"
         >
           <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -56,11 +56,13 @@ export default function Calendar() {
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-7 gap-y-0.5">
+      {/* Tinggi selalu cukup untuk 6 baris (202px = 6×32px + 5×2px gap) supaya
+          layout homepage nggak lompat saat ganti bulan (Feb 4 minggu, Mei 6). */}
+      <div className="mt-3 grid h-[202px] auto-rows-fr grid-cols-7 gap-y-0.5">
         {DAY_LABELS.map((d) => (
           <div
             key={d}
-            className="grid h-8 place-items-center text-xs font-normal text-[#757575] dark:text-white/50"
+            className="grid h-8 place-items-center text-xs font-normal text-[#757575] dark:text-white/70"
           >
             {d}
           </div>
@@ -69,7 +71,7 @@ export default function Calendar() {
           const isToday =
             day !== null && `${year}-${month}-${day}` === todayKey;
           return (
-            <div key={i} className="grid h-8 place-items-center">
+            <div key={i} className="grid place-items-center">
               {day !== null ? (
                 <span
                   className={`grid size-7 place-items-center rounded-full text-xs ${

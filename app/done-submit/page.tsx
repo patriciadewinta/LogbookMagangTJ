@@ -17,7 +17,7 @@ function DoneUploadRow({ fileName, hint }: { fileName: string; hint: string }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[20px] text-black dark:text-white">{fileName}</p>
-        <p className="truncate text-[16px] text-black/30 dark:text-white/30">{hint}</p>
+        <p className="truncate text-[16px] text-black/30 dark:text-white/55">{hint}</p>
       </div>
       <span className="shrink-0 rounded-[10px] bg-[#deedf8] px-4 py-1.5 text-[16px] font-light text-[#001192] dark:bg-white/10 dark:text-[#4258ff]">
         Terkirim
@@ -42,45 +42,53 @@ export default async function DoneSubmitPage() {
   const fileName = submission?.logbookFilePath.split("/").pop() ?? "logbook_magang.pdf";
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[#edf7fe] px-4 py-16 dark:bg-[#262f49]">
+    <div className="flex min-h-screen items-center justify-center bg-[#edf7fe] px-4 py-16 dark:bg-[#262f49]">
       <Toast />
 
       <PageTransition>
-      <div className="absolute left-[clamp(16px,4vw,102px)] top-5 flex items-center gap-3">
-        <Link
-          href="/"
-          transitionTypes={["nav-back"]}
-          aria-label="Kembali"
-          title="Kembali"
-          className="grid size-12 place-items-center rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <img src="/assets/back-arrow.png" alt="" className="size-10 object-contain" />
-        </Link>
-        <ViewTransition name="logo-tj" default="block">
-          <img
-            src="/assets/logo-tj.png"
-            alt="Logo Tj"
-            className="size-14 rounded-[10px] object-cover dark:hidden"
-          />
-          <img
-            src="/assets/logo-tj-dark.png"
-            alt="Logo Tj"
-            className="hidden size-14 rounded-[10px] object-cover dark:block"
-          />
-        </ViewTransition>
-      </div>
+      {/* Back di luar kartu (kolom kiri grid), kartu tetap di tengah. Layar < 1200px:
+          back pindah ke atas kartu biar nggak kepotong tepi layar. */}
+      <div className="flex w-full flex-col items-start gap-2 min-[1000px]:grid min-[1200px]:grid-cols-[1fr_1026px_1fr] min-[1200px]:items-start">
+        <div className="flex items-center min-[1200px]:justify-end min-[1200px]:pr-2">
+          <Link
+            href="/"
+            transitionTypes={["nav-back"]}
+            aria-label="Kembali ke Beranda"
+            title="Kembali ke Beranda"
+            className="grid size-16 place-items-center rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <img src="/assets/back-arrow.png" alt="" className="size-12 object-contain" />
+          </Link>
+        </div>
 
       <ViewTransition
         name="main-card"
         default="block w-full max-w-[1026px]"
       >
       <div className="w-full max-w-[1026px] rounded-[10px] border border-[#d9d9d9] bg-white p-6 shadow-[0px_0px_48px_0px_rgba(0,0,0,0.35)] sm:p-10 dark:border-white/10 dark:bg-black">
-        <h1 className="text-[28px] font-bold leading-tight text-black dark:text-white sm:text-[40px]">
-          Logbook terkirim!
-        </h1>
-        <p className="mt-2 max-w-[720px] text-[18px] font-light leading-snug text-black dark:text-white sm:text-[20px]">
-          Laporan magangmu sudah masuk. Pantau status persetujuan pada beranda atau history.
-        </p>
+        {/* Header: logo kiri rata tengah vertikal, judul + deskripsi rata kiri di kanannya */}
+        <div className="flex items-center gap-4">
+          <ViewTransition name="logo-tj" default="block">
+            <img
+              src="/assets/logo-tj.png"
+              alt="Logo Tj"
+              className="size-16 shrink-0 rounded-[10px] object-cover dark:hidden"
+            />
+            <img
+              src="/assets/logo-tj-dark.png"
+              alt="Logo Tj"
+              className="hidden size-16 shrink-0 rounded-[10px] object-cover dark:block"
+            />
+          </ViewTransition>
+          <div className="min-w-0">
+            <h1 className="text-[28px] font-bold leading-tight text-black dark:text-white sm:text-[40px]">
+              Logbook terkirim!
+            </h1>
+            <p className="mt-2 text-[18px] font-light leading-snug text-black dark:text-white sm:text-[20px]">
+              Laporan magangmu sudah masuk. Pantau status persetujuan pada beranda atau history.
+            </p>
+          </div>
+        </div>
 
         <div className="mt-8 flex flex-col gap-6">
           <div>
@@ -121,7 +129,7 @@ export default async function DoneSubmitPage() {
                   <p className="truncate text-[20px] text-black dark:text-white">
                     {submission.cutiCount} hari cuti/izin
                   </p>
-                  <p className="truncate text-[16px] text-black/30 dark:text-white/30">
+                  <p className="truncate text-[16px] text-black/30 dark:text-white/55">
                     {submission.cutiReason || "Tanpa keterangan"}
                   </p>
                 </div>
@@ -142,6 +150,8 @@ export default async function DoneSubmitPage() {
         </Link>
       </div>
       </ViewTransition>
+      <div aria-hidden className="hidden min-[1300px]:block" />
+      </div>
       </PageTransition>
     </div>
   );

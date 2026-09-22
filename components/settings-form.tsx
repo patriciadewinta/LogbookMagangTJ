@@ -157,7 +157,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
                   className={`h-11 w-full cursor-pointer appearance-none rounded-[10px] border border-[#d9d9d9] bg-white px-3 pr-9 text-[16px] outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:focus:border-[#4258ff] ${
                     domisili
                       ? "text-black dark:text-white"
-                      : "text-black/40 dark:text-white/40"
+                      : "text-black/40 dark:text-white/65"
                   }`}
                 >
                   <option value="" disabled>
@@ -175,7 +175,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
                 </select>
                 <svg
                   viewBox="0 0 24 24"
-                  className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-black/50 dark:text-white/50"
+                  className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-black/50 dark:text-white/70"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -193,7 +193,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
             <p className="text-[20px] font-semibold text-black dark:text-white">
               Notifikasi Email
             </p>
-            <p className="mt-0.5 text-[16px] text-black/30 dark:text-white/30">
+            <p className="mt-0.5 text-[16px] text-black/30 dark:text-white/55">
               Terima notifikasi status laporan magang
             </p>
           </div>

@@ -42,7 +42,7 @@ export default async function OdSettingsPage() {
                 <h2 className="text-lg font-semibold text-[#1f2937] dark:text-white">
                   {user.name}
                 </h2>
-                <p className="text-sm text-[#6b7280] dark:text-white/60">
+                <p className="text-sm text-[#6b7280] dark:text-white/75">
                   {user.email}
                 </p>
                 <p className="mt-1 text-xs font-medium text-[#0a2b6e] dark:text-[#4258ff]">
@@ -57,7 +57,7 @@ export default async function OdSettingsPage() {
             <h2 className="text-sm font-semibold text-[#1f2937] dark:text-white">
               Gaji Anak Magang
             </h2>
-            <p className="mt-1 text-xs text-[#6b7280] dark:text-white/60">
+            <p className="mt-1 text-xs text-[#6b7280] dark:text-white/75">
               Nominal uang saku per hari, dipakai saat menandai "sudah dibayar" di Rekap Aktivitas.
             </p>
             <SalarySettingForm initialValue={salaryPerDay} />
@@ -68,7 +68,7 @@ export default async function OdSettingsPage() {
             <h2 className="text-sm font-semibold text-[#1f2937] dark:text-white">
               Tampilan
             </h2>
-            <p className="mt-1 text-xs text-[#6b7280] dark:text-white/60">
+            <p className="mt-1 text-xs text-[#6b7280] dark:text-white/75">
               Sesuaikan tampilan aplikasi
             </p>
             <div className="mt-4 flex items-center justify-between rounded-lg bg-[#f3f4f6] px-4 py-3 dark:bg-white/10">
@@ -82,7 +82,7 @@ export default async function OdSettingsPage() {
             <h2 className="text-sm font-semibold text-[#1f2937] dark:text-white">
               Notifikasi
             </h2>
-            <p className="mt-1 text-xs text-[#6b7280] dark:text-white/60">
+            <p className="mt-1 text-xs text-[#6b7280] dark:text-white/75">
               Atur preferensi notifikasi
             </p>
             <div className="mt-4 space-y-3">
@@ -102,7 +102,7 @@ export default async function OdSettingsPage() {
             <h2 className="text-sm font-semibold text-[#1f2937] dark:text-white">
               Keamanan
             </h2>
-            <p className="mt-1 text-xs text-[#6b7280] dark:text-white/60">
+            <p className="mt-1 text-xs text-[#6b7280] dark:text-white/75">
               Kelola keamanan akun
             </p>
             <div className="mt-4 space-y-2">

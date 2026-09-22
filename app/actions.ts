@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildLogbookNotification, sendLogbookEmail } from "@/lib/notify";
+import { sendPasswordResetEmail } from "@/lib/email";
 import { buildTtdUrl, createApprovalToken } from "@/lib/approval";
 import { generateLogbookPdf } from "@/lib/pdf-logbook";
 import { PROVINCES } from "@/lib/domisili";
@@ -127,6 +128,52 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+// Lupa password: buat token reset (valid 1 jam) untuk email yang terdaftar,
+// lalu kirim link via email. Token dipakai sekali dan disimpan di tabel yang
+// sama dengan token onboarding (PasswordSetToken).
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Email tidak valid." };
+
+  const admin = createAdminClient();
+  const { data: usersData } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const user = usersData.users.find((u) => u.email?.toLowerCase() === email);
+  if (!user) return { error: "Email tidak terdaftar di sistem." };
+
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 jam
+
+  try {
+    // Hapus token reset lama yang belum dipakai untuk email ini, lalu buat baru.
+    await prisma.passwordSetToken.deleteMany({
+      where: { email, usedAt: null },
+    });
+    await prisma.passwordSetToken.create({
+      data: { email, token, expiresAt },
+    });
+  } catch (e) {
+    return {
+      error: `Gagal membuat link reset: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+
+  const profile = await prisma.profile.findUnique({
+    where: { id: user.id },
+    select: { fullName: true },
+  });
+  const name =
+    profile?.fullName ||
+    (user.user_metadata?.full_name as string) ||
+    email.split("@")[0];
+
+  const sent = await sendPasswordResetEmail({ email, name, token });
+  if (!sent.success) {
+    return { error: "Gagal mengirim email. Coba lagi nanti." };
+  }
+
+  return { error: null as string | null };
 }
 
 // Tanggal laporan = hari weekdays terakhir pada bulan periode (bulan
@@ -713,6 +760,35 @@ export async function deleteSubmission(formData: FormData) {
   } catch (e) {
     return {
       error: `Gagal menghapus submission: ${e instanceof Error ? e.message : "unknown"}`,
+    };
+  }
+
+  revalidatePath("/od/history");
+  return { error: null };
+}
+
+// OD: koreksi jumlah kehadiran (total hari masuk & cuti/izin) pada submission.
+export async function updateSubmission(formData: FormData) {
+  await requireOD();
+  const id = String(formData.get("id") ?? "");
+  const hadirCount = Number(formData.get("hadir_count") ?? "");
+  const cutiCount = Number(formData.get("cuti_count") ?? "");
+  if (!id) return { error: "Submission tidak ditemukan." };
+  if (!Number.isInteger(hadirCount) || hadirCount < 0) {
+    return { error: "Total hari masuk tidak valid." };
+  }
+  if (!Number.isInteger(cutiCount) || cutiCount < 0) {
+    return { error: "Total hari cuti tidak valid." };
+  }
+
+  try {
+    await prisma.logbookSubmission.update({
+      where: { id },
+      data: { hadirCount, cutiCount },
+    });
+  } catch (e) {
+    return {
+      error: `Gagal memperbarui data: ${e instanceof Error ? e.message : "unknown"}`,
     };
   }
 

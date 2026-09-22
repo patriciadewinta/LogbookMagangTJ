@@ -158,7 +158,7 @@ function TtdContent() {
                 <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-[15px]">
                   {detailRows.map(([label, value]) => (
                     <div key={label} className="col-span-2 grid grid-cols-[110px_1fr]">
-                      <dt className="text-black/50 dark:text-white/50">{label}</dt>
+                      <dt className="text-black/50 dark:text-white/70">{label}</dt>
                       <dd className="font-medium text-black dark:text-white">{value}</dd>
                     </div>
                   ))}

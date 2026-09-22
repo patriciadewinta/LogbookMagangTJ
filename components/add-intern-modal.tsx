@@ -79,7 +79,7 @@ export default function AddInternModal({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Tutup"
-            className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"
+            className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/75 dark:hover:bg-white/10"
           >
             <svg
               viewBox="0 0 24 24"

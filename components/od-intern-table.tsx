@@ -133,7 +133,7 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                 {[
                   "Nama",
                   "Status",
-                  "Asal Domisili",
+                  "Asal Daerah",
                   "Universitas/Instansi",
                   "Posisi",
                   "Tanggal Mulai Magang",
@@ -225,7 +225,7 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
             </tbody>
           </table>
         ) : (
-          <p className="px-6 py-10 text-center text-[16px] text-black/40 dark:text-white/40">
+          <p className="px-6 py-10 text-center text-[16px] text-black/40 dark:text-white/65">
             Belum ada anak magang.
           </p>
         )}
@@ -248,7 +248,7 @@ export default function OdInternTable({ interns }: { interns: InternRow[] }) {
                 type="button"
                 onClick={closeModal}
                 aria-label="Tutup"
-                className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"
+                className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/75 dark:hover:bg-white/10"
               >
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />

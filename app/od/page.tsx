@@ -21,7 +21,7 @@ function StatCard({ label, value, subtext }: { label: string; value: string; sub
         {value}
       </p>
       {subtext && (
-        <p className="mt-1 text-xs text-[#727272] dark:text-white/60">{subtext}</p>
+        <p className="mt-1 text-xs text-[#727272] dark:text-white/75">{subtext}</p>
       )}
     </div>
   );
@@ -159,7 +159,7 @@ export default async function OdHomePage() {
               <p className="mt-2 text-2xl font-extrabold leading-tight text-[#333333] dark:text-white">
                 {pendingCount} dari {totalSubmissions} laporan
               </p>
-              <p className="mt-1 text-xs text-[#727272] dark:text-white/60">
+              <p className="mt-1 text-xs text-[#727272] dark:text-white/75">
                 {collectedPct}% Laporan Terkumpul
               </p>
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e5e7eb] dark:bg-white/20">
@@ -208,7 +208,7 @@ export default async function OdHomePage() {
                   <p className="text-sm font-semibold text-[#333333] dark:text-white">
                     Log Aktivitas Anak Magang
                   </p>
-                  <p className="text-xs text-[#727272] dark:text-white/60">
+                  <p className="text-xs text-[#727272] dark:text-white/75">
                     Pantau aktivitas magang melalui logbook dan update status pembayaran!
                   </p>
                 </div>
