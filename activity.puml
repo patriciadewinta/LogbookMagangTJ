@@ -1,0 +1,57 @@
+@startuml
+|OD|
+start
+:OD login;
+:Tambah data anak magang:\nnama, email, universitas, posisi,\ndomisili, HP, tanggal mulai-selesai;
+:Tambah data approver:\npembimbing, kadep, kadiv;
+:Isi daftar hari libur tahun berjalan;
+
+|Sistem|
+:Kirim email set-password;
+:Status anak magang = pending;
+
+|Anak Magang|
+:Buka link email;
+:Isi NIM + password;
+:Login;
+:Isi form: pilih pembimbing+kadep+kadiv,\ndaftar kegiatan harian + tanggal,\nketerangan cuti;
+
+fork
+  |Sistem|
+  :Cocokkan tanggal kegiatan\ndengan daftar libur OD;
+  if (Tanggal masuk daftar libur?) then (Ya)
+    :TIDAK dihitung sebagai hari hadir;
+  else (Tidak)
+  endif
+  :Hitung hari kerja aktif bulanan:\ntotal hari - Sabtu/Minggu - libur;
+fork again
+  |Pembimbing|
+  :Buka link, baca PDF,\ntanda tangan digital;
+end fork
+
+|Sistem|
+:Generate PDF logbook dari HTML;
+:Kirim email ke kadep;
+
+|Kadep|
+:Buka link, baca PDF,\ntanda tangan digital;
+
+|Sistem|
+:Kirim email ke kadiv;
+
+|Kadiv|
+:Buka link, baca PDF,\ntanda tangan digital;
+
+|Sistem|
+:PDF masuk History OD +\nemail ke pembimbing berisi\nlink tanda tangan;
+:Status = approved semua pihak;
+
+|OD|
+:History OD menampilkan\nstatus approved;
+:Hitung pembayaran:\ntotal hari pada input logbook\nx tarif harian;
+:Set status pembayaran\n- penggajian tanggal 10;
+
+|Sistem|
+:Dashboard OD ter-update;
+stop
+@enduml
