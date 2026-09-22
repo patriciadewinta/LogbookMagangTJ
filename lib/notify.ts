@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import { sendMail } from "./email";
 import { buildEmailHtml, detailTable, escapeEmailHtml } from "./email-template";
 
 export type LogbookNotificationPayload = {
@@ -130,31 +130,13 @@ function buildLogbookEmail(payload: LogbookNotificationPayload): {
 export async function sendLogbookEmail(
   payload: LogbookNotificationPayload
 ): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error(
-      "RESEND_API_KEY belum di-set di .env.local. Cek panduan setup Resend."
-    );
-    return false;
-  }
-  try {
-    const resend = new Resend(apiKey);
-    const { subject, html } = buildLogbookEmail(payload);
-    const res = await resend.emails.send({
-      from: process.env.EMAIL_FROM ?? "Logbook Magang <onboarding@resend.dev>",
-      to: payload.emailTujuan,
-      subject,
-      html,
-    });
-    if (res.error) {
-      console.error("Resend menolak kirim email:", res.error);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("Gagal kirim email logbook:", err);
-    return false;
-  }
+  const { subject, html } = buildLogbookEmail(payload);
+  const res = await sendMail({
+    to: payload.emailTujuan,
+    subject,
+    html,
+  });
+  return res.success;
 }
 
 export async function notifyPowerAutomate(

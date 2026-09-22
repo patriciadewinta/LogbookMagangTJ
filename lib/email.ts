@@ -1,9 +1,42 @@
-import { Resend } from 'resend';
-import { buildEmailHtml, escapeEmailHtml } from './email-template';
+import nodemailer from "nodemailer";
+import { buildEmailHtml, escapeEmailHtml } from "./email-template";
 
-// Strip BOM/whitespace yang bisa kebawa saat copy-paste env var (mis. di Vercel)
-const apiKey = process.env.RESEND_API_KEY?.replace(/^﻿/, "").trim();
-const resend = new Resend(apiKey);
+// Kirim email via Gmail SMTP pakai App Password (bukan password akun biasa).
+// Buat App Password di: myaccount.google.com/apppasswords (butuh 2FA aktif).
+// Env: GMAIL_USER = alamat gmail, GMAIL_APP_PASSWORD = 16 huruf app password.
+// Sanitasi BOM/spasi — nilai env yang ke-copy-paste bisa bawa karakter tak
+// terlihat yang bikin auth SMTP gagal.
+function getTransporter() {
+  const user = process.env.GMAIL_USER?.replace(/^﻿/, "").trim();
+  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/^﻿/, "").replace(/\s+/g, "");
+  if (!user || !pass) {
+    console.error("GMAIL_USER / GMAIL_APP_PASSWORD belum di-set di env.");
+    return null;
+  }
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  });
+}
+
+export async function sendMail(options: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ success: boolean; error?: unknown }> {
+  const transporter = getTransporter();
+  if (!transporter) return { success: false, error: "missing gmail env" };
+  try {
+    const from =
+      process.env.EMAIL_FROM ??
+      `Logbook Magang <${process.env.GMAIL_USER}>`;
+    await transporter.sendMail({ from, ...options });
+    return { success: true };
+  } catch (error) {
+    console.error("Gagal kirim email:", error);
+    return { success: false, error };
+  }
+}
 
 export interface SendPasswordSetEmailParams {
   email: string;
@@ -28,25 +61,17 @@ export async function sendPasswordSetEmail({
   `;
 
   const html = buildEmailHtml({
-    heading: 'Pembuatan Akun Logbook Magang',
+    heading: "Pembuatan Akun Logbook Magang",
     bodyHtml,
-    ctaText: 'Set Password',
+    ctaText: "Set Password",
     ctaUrl: setPasswordUrl,
   });
 
-  try {
-    const data = await resend.emails.send({
-      from: 'Logbook Magang <onboarding@resend.dev>', // Pakai default domain Resend (gratis)
-      to: email,
-      subject: 'Pembuatan Akun Logbook Magang TransJakarta',
-      html,
-    });
-
-    return { success: true, data };
-  } catch (error) {
-    console.error('Failed to send email:', error);
-    return { success: false, error };
-  }
+  return sendMail({
+    to: email,
+    subject: "Pembuatan Akun Logbook Magang TransJakarta",
+    html,
+  });
 }
 
 export interface SendPasswordResetEmailParams {
@@ -71,23 +96,15 @@ export async function sendPasswordResetEmail({
   `;
 
   const html = buildEmailHtml({
-    heading: 'Reset Password Logbook Magang',
+    heading: "Reset Password Logbook Magang",
     bodyHtml,
-    ctaText: 'Reset Password',
+    ctaText: "Reset Password",
     ctaUrl: resetUrl,
   });
 
-  try {
-    const data = await resend.emails.send({
-      from: 'Logbook Magang <onboarding@resend.dev>',
-      to: email,
-      subject: 'Reset Password Logbook Magang TransJakarta',
-      html,
-    });
-
-    return { success: true, data };
-  } catch (error) {
-    console.error('Failed to send reset email:', error);
-    return { success: false, error };
-  }
+  return sendMail({
+    to: email,
+    subject: "Reset Password Logbook Magang TransJakarta",
+    html,
+  });
 }
