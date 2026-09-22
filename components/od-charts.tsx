@@ -30,7 +30,7 @@ const UNIVERSITY_COLORS = [
 const cardClass =
   "rounded-[10px] border border-[#d9d9d9] bg-white p-4 dark:border-white/10 dark:bg-black sm:p-5";
 const titleClass = "text-[16px] font-semibold text-black dark:text-white";
-const subtitleClass = "mt-0.5 text-[13px] text-black/40 dark:text-white/40";
+const subtitleClass = "mt-0.5 text-[13px] text-black/40 dark:text-white/65";
 
 const tooltipStyle = {
   background: "#fff",
@@ -107,14 +107,14 @@ function PieCard({
                     style={{ background: colors[i % colors.length] }}
                   />
                   <span className="font-medium">{r.name}</span>
-                  <span className="text-black/50 dark:text-white/50">{pct}%</span>
+                  <span className="text-black/50 dark:text-white/70">{pct}%</span>
                 </div>
               );
             })}
           </div>
         </div>
       ) : (
-        <p className="mt-4 rounded-[10px] border border-dashed border-black/20 px-4 py-6 text-center text-[15px] text-black/40 dark:border-white/20 dark:text-white/40">
+        <p className="mt-4 rounded-[10px] border border-dashed border-black/20 px-4 py-6 text-center text-[15px] text-black/40 dark:border-white/20 dark:text-white/65">
           Belum ada data.
         </p>
       )}
@@ -138,7 +138,7 @@ export default function OdCharts({
         <p className={titleClass}>Tren Pengeluaran Uang Saku</p>
         <p className={subtitleClass}>{rangeLabel(spendingData)}</p>
         {spendingData.length > 0 ? (
-          <div className="mt-4 h-[220px] text-[#6f6f6f] dark:text-white/60">
+          <div className="mt-4 h-[220px] text-[#6f6f6f] dark:text-white/75">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={spendingData} margin={{ top: 8, right: 12, left: -18, bottom: 0 }}>
                 <CartesianGrid stroke="currentColor" strokeOpacity={0.15} vertical={false} />
@@ -171,7 +171,7 @@ export default function OdCharts({
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="mt-4 rounded-[10px] border border-dashed border-black/20 px-4 py-6 text-center text-[15px] text-black/40 dark:border-white/20 dark:text-white/40">
+          <p className="mt-4 rounded-[10px] border border-dashed border-black/20 px-4 py-6 text-center text-[15px] text-black/40 dark:border-white/20 dark:text-white/65">
             Belum ada data.
           </p>
         )}

@@ -102,7 +102,7 @@ export default function HistoryTabs({ submissions }: { submissions: HistoryItem[
     `flex h-9 shrink-0 items-center rounded-t-[10px] border border-b-0 px-4 text-[12px] transition-colors sm:h-10 sm:px-[26px] sm:text-[13px] ${
       tab === t
         ? "border-[#e6ebf1] bg-white font-bold text-[#15588e] shadow-[0_-3px_10px_rgba(22,73,116,0.04)] dark:border-white/10 dark:bg-[#2a3350] dark:text-[#8fb8ff]"
-        : "border-[#e6ebf1] bg-[#eef1f5] font-semibold text-[#8a93a0] hover:text-[#15588e] dark:border-white/10 dark:bg-[#1f2840] dark:text-white/50 dark:hover:text-[#8fb8ff]"
+        : "border-[#e6ebf1] bg-[#eef1f5] font-semibold text-[#8a93a0] hover:text-[#15588e] dark:border-white/10 dark:bg-[#1f2840] dark:text-white/70 dark:hover:text-[#8fb8ff]"
     }`;
 
   const thCls = "h-[46px] px-[25px] text-left text-[13px] font-[650] text-[#657080]";

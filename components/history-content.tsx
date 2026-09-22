@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DownloadButton from "@/components/download-button";
 import { useToast } from "@/components/toast-provider";
-import { markPaid } from "@/app/actions";
+import { usePopup } from "@/components/popup";
+import { deleteSubmission, markPaid, updateSubmission } from "@/app/actions";
+
+const inputClass =
+  "h-9 w-full rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[15px] text-black outline-none focus:border-[#001192] dark:border-[#d9d9d9] dark:bg-black dark:text-white dark:focus:border-[#4258ff]";
+const labelClass = "mb-1 block text-[15px] text-black dark:text-white";
 
 type SubmissionRow = {
   id: string;
@@ -38,10 +43,14 @@ export default function HistoryContent({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = usePopup();
   const [selectedCount, setSelectedCount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [payOpen, setPayOpen] = useState(false);
   const [payBusy, setPayBusy] = useState(false);
+  const [editRow, setEditRow] = useState<SubmissionRow | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState<string | null>(null);
 
   function openPayModal() {
     setPayOpen(true);
@@ -92,6 +101,54 @@ export default function HistoryContent({
     }
   };
 
+  function openEdit(r: SubmissionRow) {
+    setEditRow(r);
+  }
+
+  function closeEditModal() {
+    if (editBusy) return;
+    setEditRow(null);
+  }
+
+  async function handleEditSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (editBusy) return;
+    const fd = new FormData(e.currentTarget);
+    if (editRow) fd.set("id", editRow.id);
+    setEditBusy(true);
+    const res = await updateSubmission(fd);
+    setEditBusy(false);
+    if (res?.error) {
+      toast.error(res.error);
+    } else {
+      toast.success("Data kehadiran diperbarui.");
+      setEditRow(null);
+      router.refresh();
+    }
+  }
+
+  async function handleDelete(r: SubmissionRow) {
+    if (deleteBusy) return;
+    const ok = await confirm({
+      title: "Hapus Laporan",
+      message: `Hapus laporan logbook milik "${r.nama}"? File logbook (dan e-sign jika ada) juga akan dihapus.`,
+      confirmLabel: "Hapus",
+      danger: true,
+    });
+    if (!ok) return;
+    setDeleteBusy(r.id);
+    const fd = new FormData();
+    fd.set("id", r.id);
+    const res = await deleteSubmission(fd);
+    setDeleteBusy(null);
+    if (res?.error) {
+      toast.error(res.error);
+    } else {
+      toast.success("Laporan dihapus.");
+      router.refresh();
+    }
+  }
+
   return (
     <>
       <h1 className="text-2xl font-bold text-[#333333] dark:text-white sm:text-3xl">
@@ -101,7 +158,7 @@ export default function HistoryContent({
       {/* Filter Bar */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-sm text-[#6b7280] dark:text-white/60">
+          <span className="text-sm text-[#6b7280] dark:text-white/75">
             {selectedCount} Dipilih
           </span>
           {selectedCount > 0 && (
@@ -203,7 +260,7 @@ export default function HistoryContent({
                       className={`inline-block rounded-lg px-3 py-1 text-xs font-semibold ${
                         r.isPaid
                           ? "bg-[#00D800] text-white"
-                          : "bg-[#e5e7eb] text-[#6b7280] dark:bg-white/10 dark:text-white/60"
+                          : "bg-[#e5e7eb] text-[#6b7280] dark:bg-white/10 dark:text-white/75"
                       }`}
                     >
                       {r.isPaid ? "Sudah Dibayar" : "Belum Dibayar"}
@@ -224,7 +281,7 @@ export default function HistoryContent({
                           }
                         />
                       )}
-                      <button className="flex items-center gap-1.5 rounded-[10px] bg-[#00D4D8] px-4 py-1.5 text-[14px] font-bold text-[#003334] transition-opacity hover:opacity-90">
+                      <button className="flex items-center gap-1.5 rounded-[10px] bg-[#00D4D8] px-4 py-1.5 text-[14px] font-bold text-white transition-opacity hover:opacity-90">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="14"
@@ -244,6 +301,33 @@ export default function HistoryContent({
                         </svg>
                         KTM
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(r)}
+                        title="Edit"
+                        aria-label={`Edit ${r.nama}`}
+                        className="grid size-8 cursor-pointer place-items-center rounded-[8px] text-[#001192] transition-colors hover:bg-[#deedf8] dark:text-[#4258ff] dark:hover:bg-white/10"
+                      >
+                        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path
+                            d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(r)}
+                        disabled={deleteBusy === r.id}
+                        title="Hapus"
+                        aria-label={`Hapus ${r.nama}`}
+                        className="grid size-8 cursor-pointer place-items-center rounded-[8px] text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-white/10"
+                      >
+                        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -251,7 +335,7 @@ export default function HistoryContent({
             </tbody>
           </table>
         ) : (
-          <p className="px-6 py-10 text-center text-sm text-[#6b7280] dark:text-white/40">
+          <p className="px-6 py-10 text-center text-sm text-[#6b7280] dark:text-white/65">
             Belum ada laporan dari anak magang.
           </p>
         )}
@@ -274,7 +358,7 @@ export default function HistoryContent({
                 type="button"
                 onClick={closePayModal}
                 aria-label="Tutup"
-                className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"
+                className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/75 dark:hover:bg-white/10"
               >
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
@@ -293,6 +377,72 @@ export default function HistoryContent({
                 className="w-full rounded-[10px] bg-[#5E46FF] py-3 text-[16px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
               >
                 {payBusy ? "Menyimpan..." : "Simpan"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editRow && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          onClick={closeEditModal}
+        >
+          <div
+            className="w-full max-w-sm rounded-[10px] border border-[#d9d9d9] bg-white p-5 shadow-[0_0_48px_0_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-black sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[20px] font-bold text-black dark:text-white">
+                Edit Data Kehadiran
+              </h2>
+              <button
+                type="button"
+                onClick={closeEditModal}
+                aria-label="Tutup"
+                className="grid size-8 cursor-pointer place-items-center rounded-full text-black/60 transition-colors hover:bg-black/5 dark:text-white/75 dark:hover:bg-white/10"
+              >
+                <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+              <div>
+                <label htmlFor="e-hadir" className={labelClass}>
+                  Total Hari Masuk
+                </label>
+                <input
+                  id="e-hadir"
+                  name="hadir_count"
+                  type="number"
+                  min={0}
+                  required
+                  defaultValue={editRow.hadirCount ?? 0}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="e-cuti" className={labelClass}>
+                  Total Hari Cuti/Izin
+                </label>
+                <input
+                  id="e-cuti"
+                  name="cuti_count"
+                  type="number"
+                  min={0}
+                  required
+                  defaultValue={editRow.cutiCount ?? 0}
+                  className={inputClass}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={editBusy}
+                className="mt-2 w-full rounded-[10px] bg-[#5E46FF] py-3 text-[16px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                {editBusy ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
             </form>
           </div>

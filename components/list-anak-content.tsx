@@ -194,7 +194,7 @@ export default function ListAnakContent({
                       />
                     </label>
                   </div>
-                  <div className="border-t border-[#d9d9d9] px-4 py-2 text-xs text-[#727272] dark:border-white/10 dark:text-white/60">
+                  <div className="border-t border-[#d9d9d9] px-4 py-2 text-xs text-[#727272] dark:border-white/10 dark:text-white/75">
                     Upload file dengan format .xlsx atau .csv maks. 1MB
                   </div>
                 </div>

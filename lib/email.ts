@@ -14,7 +14,7 @@ export async function sendPasswordSetEmail({
   name,
   token,
 }: SendPasswordSetEmailParams) {
-  const setPasswordUrl = `${process.env.NEXT_PUBLIC_APP_URL}/set-password?token=${token}`;
+  const setPasswordUrl = `${process.env.NEXT_PUBLIC_APP_URL}/login/set-password?token=${token}`;
 
   const bodyHtml = `
     <p>Yth. <b>${escapeEmailHtml(name)}</b>,</p>
@@ -43,6 +43,49 @@ export async function sendPasswordSetEmail({
     return { success: true, data };
   } catch (error) {
     console.error('Failed to send email:', error);
+    return { success: false, error };
+  }
+}
+
+export interface SendPasswordResetEmailParams {
+  email: string;
+  name: string;
+  token: string;
+}
+
+export async function sendPasswordResetEmail({
+  email,
+  name,
+  token,
+}: SendPasswordResetEmailParams) {
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/login/reset-password?token=${token}`;
+
+  const bodyHtml = `
+    <p>Yth. <b>${escapeEmailHtml(name)}</b>,</p>
+    <p>Kami menerima permintaan untuk mengatur ulang password akun Logbook Magang Anda.
+    Jika Anda tidak melakukan permintaan ini, abaikan email ini.</p>
+    <p>Klik tombol di bawah untuk membuat password baru. Link ini bersifat pribadi
+    dan berlaku selama <b>1 jam</b>. Setelah masa berlaku habis, silakan minta ulang.</p>
+  `;
+
+  const html = buildEmailHtml({
+    heading: 'Reset Password Logbook Magang',
+    bodyHtml,
+    ctaText: 'Reset Password',
+    ctaUrl: resetUrl,
+  });
+
+  try {
+    const data = await resend.emails.send({
+      from: 'Logbook Magang <onboarding@resend.dev>',
+      to: email,
+      subject: 'Reset Password Logbook Magang TransJakarta',
+      html,
+    });
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to send reset email:', error);
     return { success: false, error };
   }
 }

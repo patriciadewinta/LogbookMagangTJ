@@ -65,7 +65,7 @@ function SelectField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={`h-11 w-full cursor-pointer appearance-none rounded-[10px] border border-[#d9d9d9] bg-white px-3 pr-9 text-[16px] outline-none transition-colors focus:border-[#001192] dark:border-white/25 dark:bg-black dark:focus:border-[#4258ff] ${
-            value ? "text-black dark:text-white" : "text-black/30 dark:text-white/30"
+            value ? "text-black dark:text-white" : "text-black/30 dark:text-white/55"
           }`}
         >
           <option value="" disabled>
@@ -79,7 +79,7 @@ function SelectField({
         </select>
         <svg
           viewBox="0 0 24 24"
-          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-black/50 dark:text-white/50"
+          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-black/50 dark:text-white/70"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -284,48 +284,55 @@ export default function InputLogbookPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[#edf7fe] px-4 py-16 dark:bg-[#262f49]">
+    <div className="flex min-h-screen items-center justify-center bg-[#edf7fe] px-4 py-16 dark:bg-[#262f49]">
       <PageTransition>
-      <div className="absolute left-[clamp(16px,4vw,102px)] top-5 flex items-center gap-3">
-        <Link
-          href="/"
-          transitionTypes={["nav-back"]}
-          aria-label="Kembali"
-          title="Kembali"
-          className="grid size-12 place-items-center rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <img src="/assets/back-arrow.png" alt="" className="size-10 object-contain" />
-        </Link>
-        <ViewTransition name="logo-tj" default="block">
-          <img
-            src="/assets/logo-tj.png"
-            alt="Logo Tj"
-            className="size-14 rounded-[10px] object-cover dark:hidden"
-          />
-          <img
-            src="/assets/logo-tj-dark.png"
-            alt="Logo Tj"
-            className="hidden size-14 rounded-[10px] object-cover dark:block"
-          />
-        </ViewTransition>
-      </div>
+      {/* Back di luar kartu (kolom kiri grid), kartu tetap di tengah. Layar < 1200px:
+          back pindah ke atas kartu biar nggak kepotong tepi layar. */}
+      <div className="flex w-full flex-col items-start gap-2 min-[1000px]:grid min-[1200px]:grid-cols-[1fr_1026px_1fr] min-[1200px]:items-start">
+        <div className="flex items-center min-[1200px]:justify-end min-[1200px]:pr-2">
+          <Link
+            href="/"
+            transitionTypes={["nav-back"]}
+            aria-label="Kembali ke Beranda"
+            title="Kembali ke Beranda"
+            className="grid size-16 place-items-center rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <img src="/assets/back-arrow.png" alt="" className="size-12 object-contain" />
+          </Link>
+        </div>
 
       <ViewTransition
         name="main-card"
         default="block w-full max-w-[1026px]"
       >
       <div className="w-full max-w-[1026px] rounded-[10px] border border-[#d9d9d9] bg-white p-6 shadow-[0px_0px_48px_0px_rgba(0,0,0,0.35)] sm:p-10 dark:border-white/10 dark:bg-black">
-        <h1 className="text-[28px] font-bold leading-tight text-black dark:text-white sm:text-[40px]">
-          Isi logbook kamu!
-        </h1>
-        <p className="mt-2 max-w-[720px] text-[18px] font-light leading-snug text-black dark:text-white sm:text-[20px]">
-          Catat kegiatan harian sesuai tanggal — otomatis tersimpan sebagai draft. Saat sudah
-          lengkap satu bulan, lanjut kirim logbook untuk dibuat PDF.
-        </p>
+        {/* Header: logo kiri rata tengah vertikal, judul + deskripsi rata kiri di kanannya */}
+        <div className="flex items-center gap-4">
+          <ViewTransition name="logo-tj" default="block">
+            <img
+              src="/assets/logo-tj.png"
+              alt="Logo Tj"
+              className="size-16 shrink-0 rounded-[10px] object-cover dark:hidden"
+            />
+            <img
+              src="/assets/logo-tj-dark.png"
+              alt="Logo Tj"
+              className="hidden size-16 shrink-0 rounded-[10px] object-cover dark:block"
+            />
+          </ViewTransition>
+          <div className="min-w-0">
+            <h1 className="text-[28px] font-bold leading-tight text-black dark:text-white sm:text-[40px]">
+              Isi logbook kamu!
+            </h1>
+            <p className="mt-2 text-[18px] font-light leading-snug text-black dark:text-white sm:text-[20px]">
+              Jangan lupa simpan kegiatan harian sesuai tanggal selama satu bulan, kemudian lanjut pilih approver untuk persetujuan laporan
+            </p>
+          </div>
+        </div>
 
         {/* Progress steps */}
         <div className="mt-6 flex justify-center">
-          <div className="flex w-full max-w-[560px] items-center gap-2">
+          <div className="flex items-center gap-2">
             {STEPS.map((label, i) => (
               <div key={label} className="flex shrink-0 items-center gap-2">
                 <div
@@ -334,7 +341,7 @@ export default function InputLogbookPage() {
                       ? "bg-[#001192] text-white dark:bg-[#4258ff]"
                       : i === step
                         ? "border-2 border-[#001192] text-[#001192] dark:border-[#4258ff] dark:text-[#4258ff]"
-                        : "border-2 border-[#d9d9d9] text-black/30 dark:border-white/25 dark:text-white/30"
+                        : "border-2 border-[#d9d9d9] text-black/30 dark:border-white/25 dark:text-white/55"
                   }`}
                 >
                   {i < step ? (
@@ -347,14 +354,14 @@ export default function InputLogbookPage() {
                 </div>
                 <span
                   className={`text-[15px] font-medium ${
-                    i <= step ? "text-black dark:text-white" : "text-black/30 dark:text-white/30"
+                    i <= step ? "text-black dark:text-white" : "text-black/30 dark:text-white/55"
                   }`}
                 >
                   {label}
                 </span>
                 {i < STEPS.length - 1 && (
                   <div
-                    className={`h-0.5 flex-1 rounded-full ${
+                    className={`h-0.5 w-10 rounded-full ${
                       i < step ? "bg-[#001192] dark:bg-[#4258ff]" : "bg-[#d9d9d9] dark:bg-white/25"
                     }`}
                   />
@@ -412,7 +419,7 @@ export default function InputLogbookPage() {
                             disableWeekends
                             disabledDates={holidayDates}
                           />
-                          <span className="min-w-[90px] text-[14px] text-black/50 dark:text-white/50">
+                          <span className="min-w-[90px] text-[14px] text-black/50 dark:text-white/70">
                             {hariLabel(r.tanggal)}
                           </span>
                           {saved && (
@@ -558,7 +565,7 @@ export default function InputLogbookPage() {
                   disabled={loading}
                   className="cursor-pointer rounded-[10px] border border-[#001192] px-8 py-3 text-[18px] font-bold text-[#001192] transition-opacity hover:opacity-90 disabled:opacity-60 dark:border-[#4258ff] dark:text-[#4258ff]"
                 >
-                  Kembali
+                  ‹ Kegiatan Harian
                 </button>
                 <button
                   type="submit"
@@ -573,6 +580,8 @@ export default function InputLogbookPage() {
         </form>
       </div>
       </ViewTransition>
+      <div aria-hidden className="hidden min-[1300px]:block" />
+      </div>
       </PageTransition>
     </div>
   );
