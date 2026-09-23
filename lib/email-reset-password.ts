@@ -36,8 +36,7 @@ const BODY_TEXT = "#1f1f1f";
 // Warna solid pengganti gradient untuk Outlook (yang tidak render gradient).
 const HERO_SOLID = "#dbe1fb";
 const BUTTON_SOLID = "#406fe6";
-// Garis: rgba tak didukung Outlook, jadi pakai hex setara di atas #e9ecfc.
-const RULE = "#c3cae8";
+// Garis pemisah opsional (Figma punya Line 1 & 2, tapi tidak wajib di email).
 
 // Gradient disalin apa adanya dari Figma.
 const HEADER_GRADIENT =
@@ -99,12 +98,17 @@ export function buildResetPasswordEmailHtml({
             </td>
           </tr>
 
-          <!-- Kotak gradient 522x191.27, inset 24px, dengan garis nempel di tepi atas & bawah -->
+          <!-- Jarak pemisah: Figma menaruh kotak gradient ~3px di bawah area
+               putih. Tanpa ini gradient menempel ke header putih. -->
+          <tr><td height="3" style="height: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+
+          <!-- Kotak gradient 522x191.27, inset 24px (area putih di atasnya
+               inset 22px — beda 2px, sesuai Figma). -->
           <tr>
             <td style="padding: 0 24px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td bgcolor="${HERO_SOLID}" background="${heroUrl}" height="191" style="height: 191px; background-color: ${HERO_SOLID}; background-image: ${HEADER_GRADIENT}; background-repeat: no-repeat; background-position: center center; background-size: cover; border-top: 1px solid ${RULE}; border-bottom: 1px solid ${RULE}; border-radius: 4px; font-size: 0; line-height: 0;">
+                  <td bgcolor="${HERO_SOLID}" background="${heroUrl}" height="191" style="height: 191px; background-color: ${HERO_SOLID}; background-image: ${HEADER_GRADIENT}; background-repeat: no-repeat; background-position: center center; background-size: cover; border-radius: 4px; font-size: 0; line-height: 0;">
                     &nbsp;
                   </td>
                 </tr>
