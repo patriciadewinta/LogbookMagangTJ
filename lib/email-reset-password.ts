@@ -1,46 +1,43 @@
 // Template email khusus "Reset Password Logbook Magang".
 //
-// Struktur & warna mengikuti desain Figma (file 1LZyWO11nj22zs2sWT9qki,
-// node 254:349 "Card Reset Password"). Angka layout diambil dari pengukuran
-// langsung node Figma, bukan perkiraan:
+// Struktur mengikuti card "Permohonan Tanda Tangan Logbook" (Figma node
+// 256:284) supaya kedua email punya bentuk yang sama:
 //
-//   Kartu                570 x 711 px, bg #e9ecfc, radius 10px
-//   Area putih header    526 x 52 px, inset 22px dari tepi kartu
-//   Logo TJ              18 x 18, di x=50 / y=42.51 (lokal kartu)
-//   Judul logbook        Inter bold 14
-//   Kotak gradient       x=24, y=77.28, 522 x 191.27
-//   Garis atas/bawah     nempel di tepi kotak gradient (y=75 & y=269.87)
-//   Judul reset          Inter bold 30
-//   Body                 Inter 14 (mixed bold)
-//   Tombol               gradient 5672EE -> 406FE6 -> 001192
-//
-// PENTING — beda dari shell buildEmailHtml: di sini KARTU-nya yang biru
-// #e9ecfc, dan hanya header yang putih. Di luar kartu tetap putih (default
-// email client). Figma menaruh gradient sebagai kotak tersendiri di antara
-// dua garis, bukan sebagai background header.
+//   Kartu              570 px, bg #e9ecfc, radius 10
+//   Kotak putih        522 px, inset 24px, mulai 22px dari atas kartu
+//                      -> berisi SELURUH isi (logo, gradient, judul, isi, tombol)
+//   Logo Tj            19 x 17 @ padding 20px 26px
+//   Line 1             tepat di atas kotak gradient
+//   Gradient rect      522 x 191, hero image di tengahnya
+//   Judul              Inter bold 30, #001192
+//   Body               Inter 14
+//   Tombol             gradient 5672EE -> 406FE6 -> 001192
 //
 // Catatan kompatibilitas email client:
 // - Semua layout pakai <table> + inline style (Gmail/Outlook strip <style>).
-// - `linear-gradient` & `rgba()` tidak didukung Outlook desktop. Setiap
-//   elemen bergradient/bergaris punya `bgcolor`/warna solid sebagai fallback.
+// - `linear-gradient` & `rgba()` tidak didukung Outlook desktop, jadi setiap
+//   elemen bergradient punya `bgcolor` solid sebagai fallback.
 // - Outlook tidak paham `border-radius` pada <a>/<td> biasa, jadi tombol
 //   dibungkus <table> dengan bgcolor (area klik ikut ter-render).
+// - Gambar hero dipasang lewat <img> (bukan cuma `background-image`) karena
+//   Gmail/Outlook memblokir background-image.
 
 import { escapeEmailHtml } from "./email-template";
 
 const FONT = "Inter, Arial, Helvetica, sans-serif";
 const BLUE = "#001192";
 const CARD_BG = "#e9ecfc";
-const BODY_TEXT = "#1f1f1f";
+const BODY_TEXT = "#000000";
 
-// Warna solid pengganti gradient untuk Outlook (yang tidak render gradient).
-const HERO_SOLID = "#dbe1fb";
+// Warna solid pengganti gradient untuk Outlook (tidak render gradient).
+const HERO_SOLID = "#c9d2f6";
 const BUTTON_SOLID = "#406fe6";
-// Garis pemisah opsional (Figma punya Line 1 & 2, tapi tidak wajib di email).
+// Garis: rgba tak didukung Outlook, jadi pakai hex setara.
+const RULE = "#c3cae8";
 
-// Gradient disalin apa adanya dari Figma.
-const HEADER_GRADIENT =
-  "linear-gradient(180deg, rgba(133,148,250,0.25) 0%, rgba(255,255,255,0.25) 50.489%, rgba(185,187,200,0.07) 100%)";
+// Gradient disamakan dengan card permohonan tanda tangan.
+const HERO_GRADIENT =
+  "linear-gradient(180deg, rgba(31,57,225,0.15) 0%, rgba(255,255,255,0.25) 35.585%, rgba(0,14,122,0.25) 100%)";
 const BUTTON_GRADIENT =
   "linear-gradient(90deg, #5672ee 0%, #406fe6 50.969%, #001192 100%)";
 
@@ -81,99 +78,102 @@ export function buildResetPasswordEmailHtml({
         <!-- ===== Kartu: bg #e9ecfc, 570px, radius 10 ===== -->
         <table role="presentation" width="570" cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 570px; background-color: ${CARD_BG}; border-radius: 10px; overflow: hidden;">
 
-          <!-- Area putih header 526x52, inset 22px dari tepi kartu -->
+          <!-- Kotak putih 522px, inset 24px, mulai 22px dari atas kartu.
+               Berisi SELURUH isi, bukan cuma strip header. -->
           <tr>
-            <td style="padding: 22px 22px 0 22px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff;">
+            <td style="padding: 22px 24px 0 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 10px;">
+
+                <!-- Baris logo + nama sistem -->
                 <tr>
-                  <td height="52" style="height: 52px; padding: 0 28px; font-family: ${FONT}; font-size: 14px; font-weight: bold; color: ${BLUE}; letter-spacing: 0.2px; vertical-align: middle;">
+                  <td style="padding: 20px 26px 0 26px; font-family: ${FONT}; font-size: 14px; font-weight: bold; color: ${BLUE}; letter-spacing: 0.2px;">
                     ${
                       logoUrl
-                        ? `<img src="${logoUrl}" alt="Logo TransJakarta" width="18" height="18" style="display: inline-block; vertical-align: middle; border-radius: 4px; margin-right: 8px;"/>`
+                        ? `<img src="${logoUrl}" alt="Logo TransJakarta" width="19" height="17" style="display: inline-block; vertical-align: middle; border-radius: 4px; margin-right: 6px;"/>`
                         : ""
                     }<span style="display: inline-block; vertical-align: middle;">Logbook Magang TJ</span>
                   </td>
                 </tr>
-              </table>
-            </td>
-          </tr>
 
-          <!-- Jarak pemisah: Figma menaruh kotak gradient ~3px di bawah area
-               putih. Tanpa ini gradient menempel ke header putih. -->
-          <tr><td height="3" style="height: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr>
-
-          <!-- Kotak gradient 522x191.27, inset 24px (area putih di atasnya
-               inset 22px — beda 2px, sesuai Figma). -->
-          <tr>
-            <td style="padding: 0 24px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <!-- Line 1: tepat di atas kotak gradient -->
                 <tr>
-                  <td bgcolor="${HERO_SOLID}" background="${heroUrl}" height="191" style="height: 191px; background-color: ${HERO_SOLID}; background-image: ${HEADER_GRADIENT}; background-repeat: no-repeat; background-position: center center; background-size: cover; border-radius: 4px; font-size: 0; line-height: 0;">
-                    &nbsp;
+                  <td style="padding: 20px 0 0 0;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr><td style="border-top: 1px solid ${RULE}; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+                    </table>
                   </td>
                 </tr>
-              </table>
-            </td>
-          </tr>
 
-          <!-- ===== Judul ===== -->
-          <tr>
-            <td style="padding: 26px 24px 0 24px; font-family: ${FONT}; font-size: 30px; font-weight: bold; color: ${BLUE}; line-height: 38px; letter-spacing: 0.3px;">
-              Reset Password Logbook Magang
-            </td>
-          </tr>
-
-          <!-- ===== Isi ===== -->
-          <tr>
-            <td style="padding: 12px 24px 0 24px; font-family: ${FONT}; font-size: 14px; color: ${BODY_TEXT}; line-height: 22px; letter-spacing: 0.14px;">
-              <p style="margin: 0 0 12px 0;">Yth. <b>${escapeEmailHtml(name)}</b>,</p>
-              <p style="margin: 0 0 12px 0;">
-                Kami menerima permintaan untuk mengatur ulang password akun
-                Logbook Magang Anda. Klik tombol di bawah untuk membuat
-                password baru. Link ini bersifat pribadi dan hanya berlaku
-                selama <b>1 jam</b>. Setelah masa berlaku habis, silakan minta
-                ulang melalui halaman Lupa Password.
-              </p>
-              <p style="margin: 0 0 12px 0;">
-                Mohon <b>TIDAK</b> menyerahkan password Anda ke siapa pun,
-                termasuk Tim IT PT TransJakarta.
-              </p>
-              <p style="margin: 0;">
-                Jika Anda tidak melakukan permintaan ini, abaikan email ini —
-                password Anda tidak akan berubah.
-              </p>
-            </td>
-          </tr>
-
-          <!-- ===== Tombol CTA (gradient + ikon gembok) ===== -->
-          <tr>
-            <td style="padding: 22px 24px 0 24px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+                <!-- Kotak gradient 522x191 dengan ilustrasi hero di tengahnya -->
                 <tr>
-                  <td align="center" bgcolor="${BUTTON_SOLID}" style="background-color: ${BUTTON_SOLID}; background-image: ${BUTTON_GRADIENT}; border-radius: 4px;">
-                    <a href="${resetUrl}" target="_blank" role="button" style="display: block; padding: 15px 24px; font-family: ${FONT}; font-size: 14px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 4px; mso-padding-alt: 15px 24px;">
-                      <span style="display: inline-block; vertical-align: middle;">
-                        ${
-                          lockUrl
-                            ? `<img src="${lockUrl}" alt="" width="16" height="14" style="display: inline-block; vertical-align: middle; border: 0; margin-right: 8px;"/>`
-                            : ""
-                        }<span style="display: inline-block; vertical-align: middle;">Reset Password</span>
-                      </span>
-                    </a>
+                  <td bgcolor="${HERO_SOLID}" background="${heroUrl}" height="191" style="height: 191px; background-color: ${HERO_SOLID}; background-image: ${HERO_GRADIENT}; background-repeat: no-repeat; background-position: center center; background-size: cover; border-bottom: 1px solid ${RULE}; font-size: 0; line-height: 0; padding: 0;">
+                    ${
+                      heroUrl
+                        ? `<img src="${heroUrl}" alt="Ilustrasi reset password" width="155" height="142" style="display: block; width: 155px; height: auto; border: 0; margin: 0 auto;"/>`
+                        : "&nbsp;"
+                    }
                   </td>
                 </tr>
+
+                <!-- ===== Judul ===== -->
+                <tr>
+                  <td style="padding: 19px 26px 0 26px; font-family: ${FONT}; font-size: 30px; font-weight: bold; color: ${BLUE}; line-height: 38px; letter-spacing: 0.3px;">
+                    Reset Password Logbook Magang
+                  </td>
+                </tr>
+
+                <!-- ===== Isi ===== -->
+                <tr>
+                  <td style="padding: 12px 25px 0 25px; font-family: ${FONT}; font-size: 14px; color: ${BODY_TEXT}; line-height: 22px; letter-spacing: 0.14px;">
+                    <p style="margin: 0 0 12px 0; font-weight: bold;">Yth. <b>${escapeEmailHtml(name)}</b>,</p>
+                    <p style="margin: 0 0 12px 0;">
+                      Kami menerima permintaan untuk mengatur ulang password akun
+                      Logbook Magang Anda. Klik tombol di bawah untuk membuat
+                      password baru. Link ini bersifat pribadi dan hanya berlaku
+                      selama <b>1 jam</b>. Setelah masa berlaku habis, silakan
+                      minta ulang melalui halaman Lupa Password.
+                    </p>
+                    <p style="margin: 0 0 12px 0;">
+                      Mohon <b>TIDAK</b> menyerahkan password Anda ke siapa pun. Jika Anda tidak melakukan permintaan ini, abaikan email ini. Password Anda tidak akan berubah.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- ===== Tombol CTA (gradient + ikon gembok) ===== -->
+                <tr>
+                  <td style="padding: 22px 49px 0 49px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" bgcolor="${BUTTON_SOLID}" style="background-color: ${BUTTON_SOLID}; background-image: ${BUTTON_GRADIENT}; border-radius: 10px;">
+                          <a href="${resetUrl}" target="_blank" role="button" style="display: block; padding: 15px 24px; font-family: ${FONT}; font-size: 14px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 10px; mso-padding-alt: 15px 24px;">
+                            ${
+                              lockUrl
+                                ? `<img src="${lockUrl}" alt="" width="16" height="14" style="display: inline-block; vertical-align: middle; border: 0; margin-right: 8px;"/>`
+                                : ""
+                            }<span style="display: inline-block; vertical-align: middle;">Reset Password</span>
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Link cadangan: sebagian webmail memblokir <a> yang dibungkus
+                     table, jadi link mentah selalu disediakan. -->
+                <tr>
+                  <td style="padding: 15px 25px 12px 25px; font-family: ${FONT}; font-size: 12px; color: #6b6f8a; line-height: 18px;">
+                    Jika tombol tidak berfungsi, salin dan buka link berikut di browser:<br/>
+                    <a href="${resetUrl}" target="_blank" style="color: ${BLUE}; word-break: break-all;">${escapeEmailHtml(resetUrl)}</a>
+                  </td>
+                </tr>
+
               </table>
             </td>
           </tr>
 
-          <!-- Link cadangan: sebagian webmail memblokir <a> yang dibungkus
-               table, jadi link mentah selalu disediakan. -->
-          <tr>
-            <td style="padding: 14px 24px 26px 24px; font-family: ${FONT}; font-size: 12px; color: #6b6f8a; line-height: 18px;">
-              Jika tombol tidak berfungsi, salin dan buka link berikut di browser:<br/>
-              <a href="${resetUrl}" target="_blank" style="color: ${BLUE}; word-break: break-all;">${escapeEmailHtml(resetUrl)}</a>
-            </td>
-          </tr>
+          <!-- Sisa tinggi kartu di bawah kotak putih (Figma: kotak putih
+               berakhir di y=688.78, kartu 711 -> sisa ~22px). -->
+          <tr><td height="22" style="height: 22px; font-size: 0; line-height: 0;">&nbsp;</td></tr>
 
         </table>
         <!-- /Kartu -->
