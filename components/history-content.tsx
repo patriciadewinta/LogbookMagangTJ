@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import DownloadButton from "@/components/download-button";
 import { useToast } from "@/components/toast-provider";
@@ -44,6 +44,7 @@ export default function HistoryContent({
   const router = useRouter();
   const toast = useToast();
   const { confirm } = usePopup();
+  const [search, setSearch] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [payOpen, setPayOpen] = useState(false);
@@ -79,6 +80,17 @@ export default function HistoryContent({
       router.refresh();
     }
   }
+
+  const filteredSubmissions = useMemo(() => {
+    if (!search.trim()) return submissions;
+    const q = search.toLowerCase();
+    return submissions.filter(
+      (s) =>
+        s.nama.toLowerCase().includes(q) ||
+        s.keterangan.toLowerCase().includes(q) ||
+        s.tanggal.toLowerCase().includes(q)
+    );
+  }, [submissions, search]);
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -189,7 +201,9 @@ export default function HistoryContent({
           </svg>
           <input
             type="text"
-            placeholder="Search"
+            placeholder="Search nama, tanggal, status..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="h-9 w-full rounded-[10px] border border-[#d9d9d9] bg-white pl-10 pr-4 text-sm text-[#333333] outline-none focus:border-[#4258FF] dark:border-[#d9d9d9] dark:bg-black dark:text-white dark:focus:border-[#4258ff]"
           />
         </div>
@@ -197,14 +211,14 @@ export default function HistoryContent({
 
       {/* Table */}
       <div className="mt-4 overflow-x-auto rounded-[10px] border border-[#d9d9d9] bg-white dark:border-white/10 dark:bg-black">
-        {submissions.length > 0 ? (
+        {filteredSubmissions.length > 0 ? (
           <table className="w-full min-w-[1020px] border-collapse text-left">
             <thead>
               <tr className="bg-[#374ADF]/[0.07] dark:bg-[#374ADF]/[0.07]">
                 <th className="w-12 px-4 py-3">
                   <input
                     type="checkbox"
-                    checked={selectedIds.size === submissions.length && submissions.length > 0}
+                    checked={selectedIds.size === filteredSubmissions.length && filteredSubmissions.length > 0}
                     onChange={toggleSelectAll}
                     className="size-4 cursor-pointer rounded border-[#d9d9d9] text-[#4258FF] focus:ring-0 dark:border-white/20 dark:text-[#4258ff]"
                   />
@@ -220,7 +234,7 @@ export default function HistoryContent({
               </tr>
             </thead>
             <tbody>
-              {submissions.map((r) => (
+              {filteredSubmissions.map((r) => (
                 <tr
                   key={r.id}
                   className="border-t border-[#f0f0f0] dark:border-white/10"

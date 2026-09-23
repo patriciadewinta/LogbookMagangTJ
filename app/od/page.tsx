@@ -52,9 +52,10 @@ export default async function OdHomePage() {
       _count: { _all: true },
     }),
     prisma.logbookSubmission.findMany({
-      where: { paymentStatus: "paid" },
+      where: { paymentStatus: "paid", paidAt: { not: null } },
       select: { paidAt: true, paymentAmount: true },
       orderBy: { paidAt: "asc" },
+      take: 500,
     }),
   ]);
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   CartesianGrid,
   Cell,
@@ -122,7 +123,7 @@ function PieCard({
   );
 }
 
-export default function OdCharts({
+const OdCharts = memo(function OdCharts({
   regionData,
   universityData,
   spendingData,
@@ -194,4 +195,6 @@ export default function OdCharts({
       />
     </div>
   );
-}
+});
+
+export default OdCharts;

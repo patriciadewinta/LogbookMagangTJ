@@ -24,6 +24,7 @@ export default async function OdHistoryPage() {
     requireOD(),
     getSidebarUser(),
     prisma.logbookSubmission.findMany({
+      take: 100,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

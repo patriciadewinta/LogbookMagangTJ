@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, findAuthUserByEmail } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -95,13 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Reset hanya untuk akun yang sudah terdaftar — cari user by email.
-    const admin = createAdminClient();
-    const { data: usersData } = await admin.auth.admin.listUsers({
-      perPage: 1000,
-    });
-    const user = usersData.users.find(
-      (u) => u.email?.toLowerCase() === tokenData.email.toLowerCase()
-    );
+    const user = await findAuthUserByEmail(tokenData.email);
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Email tidak terdaftar" },
@@ -109,6 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const admin = createAdminClient();
     await admin.auth.admin.updateUserById(user.id, { password });
 
     await prisma.passwordSetToken.update({

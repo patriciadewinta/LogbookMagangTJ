@@ -3,10 +3,11 @@
 import crypto from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { requireOD, requireUser, requireUserClient } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, findAuthUserByEmail } from "@/lib/supabase/admin";
 import { buildLogbookNotification, sendLogbookEmail } from "@/lib/notify";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { buildTtdUrl, createApprovalToken } from "@/lib/approval";
@@ -87,6 +88,7 @@ export async function signUp(
       data: {
         id: data.user.id,
         fullName,
+        email,
         university,
         domisili,
         ktmFilePath: ktmPath,
@@ -137,9 +139,7 @@ export async function requestPasswordReset(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Email tidak valid." };
 
-  const admin = createAdminClient();
-  const { data: usersData } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  const user = usersData.users.find((u) => u.email?.toLowerCase() === email);
+  const user = await findAuthUserByEmail(email);
   if (!user) return { error: "Email tidak terdaftar di sistem." };
 
   const token = crypto.randomUUID();
@@ -377,23 +377,29 @@ export async function submitLogbook(formData: FormData) {
   const tanggalLaporan = lastWeekdayOfMonth(genYear, genMonth);
   const namaFile = `Logbook ${namaPengaju} ${genYear}-${String(genMonth).padStart(2, "0")}.pdf`;
 
-  await sendLogbookEmail(
-    buildLogbookNotification({
-      tahap: "pembimbing",
-      emailTujuan: pembimbing.email ?? "",
-      namaTujuan: pembimbing.name ?? "",
-      emailPengaju: user.email ?? "",
-      namaPengaju,
-      namaPembimbing: pembimbing.name ?? undefined,
-      universitas: profile?.university ?? undefined,
-      posisi: profile?.posisi ?? undefined,
-      domisili: profile?.domisili ?? undefined,
-      namaFile,
-      filePath,
-      tanggal: tanggalLaporan,
-      ctaUrl: buildTtdUrl(approvalToken.token),
-    })
-  );
+  after(async () => {
+    try {
+      await sendLogbookEmail(
+        buildLogbookNotification({
+          tahap: "pembimbing",
+          emailTujuan: pembimbing.email ?? "",
+          namaTujuan: pembimbing.name ?? "",
+          emailPengaju: user.email ?? "",
+          namaPengaju,
+          namaPembimbing: pembimbing.name ?? undefined,
+          universitas: profile?.university ?? undefined,
+          posisi: profile?.posisi ?? undefined,
+          domisili: profile?.domisili ?? undefined,
+          namaFile,
+          filePath,
+          tanggal: tanggalLaporan,
+          ctaUrl: buildTtdUrl(approvalToken.token),
+        })
+      );
+    } catch (err) {
+      console.error("after: sendLogbookEmail failed:", err);
+    }
+  });
 
   redirect("/done-submit");
 }
