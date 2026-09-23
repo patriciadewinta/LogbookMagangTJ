@@ -1,5 +1,7 @@
 import { sendMail } from "./email";
-import { buildEmailHtml, detailTable, escapeEmailHtml } from "./email-template";
+import { env } from "./env";
+import { escapeEmailHtml } from "./email-template";
+import { buildSignatureRequestEmailHtml } from "./email-signature-request";
 
 export type LogbookNotificationPayload = {
   tahap: string;
@@ -102,26 +104,16 @@ function buildLogbookEmail(payload: LogbookNotificationPayload): {
   subject: string;
   html: string;
 } {
-  const e = escapeEmailHtml;
   const label = TAHAP_LABEL[payload.tahap] ?? payload.tahap;
   const subject = `Permohonan penandatanganan logbook magang — tahap ${label}`;
 
-  const bodyHtml = [
-    `<p>${e(payload.pesan)}</p>`,
-    detailTable([
-      ["Nama", payload.namaPengaju],
-      ["Universitas", payload.universitas],
-      ["Posisi", payload.posisi],
-      ["Domisili", payload.domisili],
-      ["File Logbook", payload.namaFile],
-      ["Tanggal", payload.tanggal],
-    ]),
-  ].join("");
-
-  const html = buildEmailHtml({
-    heading: `Permohonan Tanda Tangan Logbook — Tahap ${label}`,
-    bodyHtml,
-    ctaText: "Buka & Tanda Tangan Logbook",
+  // Desain card punya template sendiri (Figma node 256:284), tidak pakai
+  // shell buildEmailHtml yang dipakai email notifikasi lain.
+  const html = buildSignatureRequestEmailHtml({
+    namaTujuan: payload.namaTujuan,
+    namaPengaju: payload.namaPengaju,
+    universitas: payload.universitas,
+    peranTujuan: label,
     ctaUrl: payload.ctaUrl,
   });
   return { subject, html };
@@ -142,7 +134,8 @@ export async function sendLogbookEmail(
 export async function notifyPowerAutomate(
   payload: Record<string, unknown>
 ): Promise<boolean> {
-  const url = process.env.POWER_AUTOMATE_WEBHOOK_URL;
+  // URL webhook juga rawan kena BOM saat di-paste dari Power Automate.
+  const url = env("POWER_AUTOMATE_WEBHOOK_URL");
   if (!url) return false;
   try {
     const res = await fetch(url, {

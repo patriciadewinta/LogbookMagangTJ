@@ -1,15 +1,16 @@
 import nodemailer from "nodemailer";
 import { buildEmailHtml, escapeEmailHtml } from "./email-template";
 import { buildResetPasswordEmailHtml } from "./email-reset-password";
+import { env } from "./env";
 
 // Kirim email via Gmail SMTP pakai App Password (bukan password akun biasa).
 // Buat App Password di: myaccount.google.com/apppasswords (butuh 2FA aktif).
 // Env: GMAIL_USER = alamat gmail, GMAIL_APP_PASSWORD = 16 huruf app password.
-// Sanitasi BOM/spasi — nilai env yang ke-copy-paste bisa bawa karakter tak
-// terlihat yang bikin auth SMTP gagal.
+// Sanitasi BOM/karakter tak terlihat ditangani lib/env.ts — dulu di-patch
+// inline di sini, sekarang terpusat supaya variabel lain ikut aman.
 function getTransporter() {
-  const user = process.env.GMAIL_USER?.replace(/^﻿/, "").trim();
-  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/^﻿/, "").replace(/\s+/g, "");
+  const user = env("GMAIL_USER");
+  const pass = env("GMAIL_APP_PASSWORD", { stripAllWhitespace: true });
   if (!user || !pass) {
     console.error("GMAIL_USER / GMAIL_APP_PASSWORD belum di-set di env.");
     return null;
