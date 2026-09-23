@@ -11,7 +11,7 @@ datasource db {
 model Profile {
   id          String   @id @db.Uuid
   fullName    String   @default("") @map("full_name")
-  email       String?
+  email       String?  @unique
   emailNotif  Boolean  @default(true) @map("email_notif")
   university  String?
   domisili    String?

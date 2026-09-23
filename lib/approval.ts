@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { after } from "next/server";
 import type { LogbookSubmission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -225,7 +226,15 @@ export async function advanceApproval(
   });
 
   // QR tanda tangan tahap yang baru saja acc dicetak ke PDF (menimpa file lama).
-  await regenerateSignedLogbook(submission, newStatus);
+  // Menggunakan after() dari Next.js agar serverless runtime Vercel tidak mematikan
+  // eksekusi browser/upload saat respon HTTP sudah selesai dikirim.
+  after(async () => {
+    try {
+      await regenerateSignedLogbook(submission, newStatus);
+    } catch (err) {
+      console.error("after: regenerateSignedLogbook failed:", err);
+    }
+  });
 
   const nextTahap = NEXT_TAHAP[finalTahap];
   if (!nextTahap) return { finished: true };
@@ -242,7 +251,13 @@ export async function advanceApproval(
     tujuan.name ?? "",
     tujuan.email
   );
-  await sendTahapEmail(submission, nextTahap, buildTtdUrl(token.token));
+  after(async () => {
+    try {
+      await sendTahapEmail(submission, nextTahap, buildTtdUrl(token.token));
+    } catch (err) {
+      console.error("after: sendTahapEmail failed:", err);
+    }
+  });
 
   return { finished: false, nextTahap, nextApproverName: tujuan.name ?? undefined };
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, findAuthUserByEmail } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -110,12 +110,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Check if user already exists (by email)
     const admin = createAdminClient();
-
-    // First, let's check if a user with this email already exists
-    const { data: existingUsers } = await admin.auth.admin.listUsers();
-    const existingUser = existingUsers.users.find(
-      (u) => u.email === tokenData.email
-    );
+    const existingUser = await findAuthUserByEmail(tokenData.email);
 
     let userId: string;
 
