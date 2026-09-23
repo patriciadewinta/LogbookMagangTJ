@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { buildEmailHtml, escapeEmailHtml } from "./email-template";
+import { buildResetPasswordEmailHtml } from "./email-reset-password";
 
 // Kirim email via Gmail SMTP pakai App Password (bukan password akun biasa).
 // Buat App Password di: myaccount.google.com/apppasswords (butuh 2FA aktif).
@@ -92,20 +93,9 @@ export async function sendPasswordResetEmail({
 }: SendPasswordResetEmailParams) {
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/login/reset-password?token=${token}`;
 
-  const bodyHtml = `
-    <p>Yth. <b>${escapeEmailHtml(name)}</b>,</p>
-    <p>Kami menerima permintaan untuk mengatur ulang password akun Logbook Magang Anda.
-    Jika Anda tidak melakukan permintaan ini, abaikan email ini.</p>
-    <p>Klik tombol di bawah untuk membuat password baru. Link ini bersifat pribadi
-    dan berlaku selama <b>1 jam</b>. Setelah masa berlaku habis, silakan minta ulang.</p>
-  `;
-
-  const html = buildEmailHtml({
-    heading: "Reset Password Logbook Magang",
-    bodyHtml,
-    ctaText: "Reset Password",
-    ctaUrl: resetUrl,
-  });
+  // Email reset punya desain sendiri (Figma node 254:349), tidak pakai
+  // shell buildEmailHtml yang dipakai email notifikasi logbook.
+  const html = buildResetPasswordEmailHtml({ name, resetUrl });
 
   return sendMail({
     to: email,
