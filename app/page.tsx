@@ -1,6 +1,7 @@
 import { ViewTransition } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import Calendar from "@/components/calendar";
 import PageTransition from "@/components/page-transition";
 import Sidebar from "@/components/sidebar";
@@ -8,6 +9,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSidebarUser } from "@/lib/user";
 import { getWorkdayCount } from "@/lib/holidays";
+import { timer } from "@/lib/timing";
 
 // Tanggal laporan = hari weekdays terakhir pada bulan periode (bulan
 // berakhir Sabtu/Minggu → mundur ke Jumat). Mis. Agustus 2026 → tgl 31 (Senin).
@@ -337,42 +339,65 @@ function Stepper({
 }
 
 export default async function HomePage() {
-  const user = await requireUser();
-
-  let fullName = (user.user_metadata?.full_name as string) ?? user.email?.split("@")[0] ?? "Kamu";
+  // SEMENTARA: pisahkan waktu auth, query, dan hitung hari kerja.
+  const tm = timer("home");
 
   const now = new Date();
   const curYear = now.getFullYear();
   const curMonth = now.getMonth() + 1;
 
-  // Semua query berjalan paralel (dulu beruntun 4 round-trip), termasuk
-  // data sidebar — cache() membagikan hasilnya ke <Sidebar /> saat render.
-  const [, profile, latest, monthSubmission, workdays] = await Promise.all([
+  // requireUser() dulu di-await sendirian di atas Promise.all, jadi keempat
+  // query baru mulai SETELAH verifikasi JWT kelar — satu lapis waterfall
+  // sia-sia. Sekarang dikelompokkan: yang butuh user.id menunggu di dalam
+  // closure (paralel satu sama lain), yang tidak butuh jalan sejak detik
+  // pertama.
+  const [{ user, profile, latest, monthSubmission }, , workdays] = await Promise.all([
+    requireUser().then(async (user) => {
+      tm.mark("auth"); // verifikasi JWT selesai
+      const [profile, latest, monthSubmission] = await Promise.all([
+        prisma.profile.findUnique({
+          where: { id: user.id },
+          select: { fullName: true, startDate: true, endDate: true, role: true },
+        }),
+        prisma.logbookSubmission.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+            periodYear: true,
+            periodMonth: true,
+            hadirCount: true,
+          },
+        }),
+        // Submission terbaru periode bulan berjalan (untuk kartu kehadiran).
+        prisma.logbookSubmission.findFirst({
+          where: { userId: user.id, periodYear: curYear, periodMonth: curMonth },
+          orderBy: { createdAt: "desc" },
+          select: { hadirCount: true },
+        }),
+      ]);
+      tm.mark("queries");
+      return { user, profile, latest, monthSubmission };
+    }),
+    // Data sidebar — cache() membagikan hasilnya ke <Sidebar /> saat render.
     getSidebarUser(),
-    prisma.profile.findUnique({
-      where: { id: user.id },
-      select: { fullName: true, startDate: true, endDate: true },
+    // getWorkdayCount bisa fetch kalender libur ke Google kalau cache-nya
+    // hangus — ini kandidat penyebab lambat, jadi diukur terpisah.
+    getWorkdayCount(curYear, curMonth).then((w) => {
+      tm.mark("workdays");
+      return w;
     }),
-    prisma.logbookSubmission.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        status: true,
-        createdAt: true,
-        periodYear: true,
-        periodMonth: true,
-        hadirCount: true,
-      },
-    }),
-    // Submission terbaru periode bulan berjalan (untuk kartu kehadiran).
-    prisma.logbookSubmission.findFirst({
-      where: { userId: user.id, periodYear: curYear, periodMonth: curMonth },
-      orderBy: { createdAt: "desc" },
-      select: { hadirCount: true },
-    }),
-    getWorkdayCount(curYear, curMonth),
   ]);
+  tm.done();
+
+  // Petugas OD punya beranda sendiri. Dulu proxy yang mengarahkan ke sini
+  // (dengan query profil terpisah di setiap request); sekarang profilnya toh
+  // sudah ter-fetch di atas, jadi redirect-nya gratis.
+  if (profile?.role === "od") redirect("/od");
+
+  let fullName = (user.user_metadata?.full_name as string) ?? user.email?.split("@")[0] ?? "Kamu";
 
   if (profile?.fullName) fullName = profile.fullName;
   const hadir = monthSubmission?.hadirCount ?? null;
