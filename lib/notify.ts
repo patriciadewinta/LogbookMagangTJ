@@ -1,6 +1,5 @@
 import { sendMail } from "./email";
 import { env } from "./env";
-import { escapeEmailHtml } from "./email-template";
 import { buildSignatureRequestEmailHtml } from "./email-signature-request";
 
 export type LogbookNotificationPayload = {
@@ -105,7 +104,8 @@ function buildLogbookEmail(payload: LogbookNotificationPayload): {
   html: string;
 } {
   const label = TAHAP_LABEL[payload.tahap] ?? payload.tahap;
-  const subject = `Permohonan penandatanganan logbook magang — tahap ${label}`;
+  // Subject tidak menyebut tahap: penerima tahu perannya dari isi email.
+  const subject = `Permohonan Penandatanganan Logbook Magang - ${payload.namaPengaju}`;
 
   // Desain card punya template sendiri (Figma node 256:284), tidak pakai
   // shell buildEmailHtml yang dipakai email notifikasi lain.

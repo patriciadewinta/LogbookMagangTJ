@@ -35,9 +35,15 @@ const BUTTON_SOLID = "#406fe6";
 // Garis: rgba tak didukung Outlook, jadi pakai hex setara.
 const RULE = "#c3cae8";
 
-// Gradient disamakan dengan card permohonan tanda tangan.
+// Gradient hero: 3 stop dari Figma, masing-masing sudah dikalikan opacity
+// keseluruhan 25% (Figma menyimpan "opacity layer" terpisah dari opacity stop,
+// sedangkan CSS tidak punya tempat untuk itu — kalau dipasang sebagai
+// `opacity: 0.25` pada elemennya, hero image ikut pudar juga).
+//   0%   #8594FA @100% x25% -> rgba(133,148,250,0.25)
+//   50%  #FFFFFF @100% x25% -> rgba(255,255,255,0.25)
+//   100% #B9BBC8 @ 27% x25% -> rgba(185,187,200,0.0675)
 const HERO_GRADIENT =
-  "linear-gradient(180deg, rgba(31,57,225,0.15) 0%, rgba(255,255,255,0.25) 35.585%, rgba(0,14,122,0.25) 100%)";
+  "linear-gradient(180deg, rgba(133,148,250,0.25) 0%, rgba(255,255,255,0.25) 50%, rgba(185,187,200,0.0675) 100%)";
 const BUTTON_GRADIENT =
   "linear-gradient(90deg, #5672ee 0%, #406fe6 50.969%, #001192 100%)";
 
