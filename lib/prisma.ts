@@ -7,11 +7,15 @@ function buildClient() {
   if (!raw) throw new Error("DATABASE_URL belum di-set.");
 
   const url = new URL(raw);
-  // Supabase PgBouncer session mode membatasi 15 koneksi total. Tanpa batas
-  // eksplisit Prisma memakai default num_cpus*2+1 per lambda instance, dan
-  // beberapa instance konkuren sudah cukup untuk kena EMAXCONNSESSION.
+  // Jalur runtime wajib lewat transaction pooler Supabase (port 6543,
+  // pgbouncer=true). Di sana koneksi cuma dipegang selama satu transaksi,
+  // jadi banyak instance lambda bisa berbagi slot yang sama. connection_limit=1
+  // berarti tiap instance cukup ambil satu koneksi. Fallback di bawah cuma
+  // jaring pengaman kalau param-nya lupa dicantumkan di env — default Prisma
+  // (num_cpus*2+1 per instance) langsung menghabiskan pool_size 15 milik
+  // Supabase dan memicu EMAXCONNSESSION.
   if (!url.searchParams.has("connection_limit")) {
-    url.searchParams.set("connection_limit", "5");
+    url.searchParams.set("connection_limit", "1");
   }
   if (!url.searchParams.has("pool_timeout")) {
     url.searchParams.set("pool_timeout", "20");
