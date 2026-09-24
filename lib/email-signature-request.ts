@@ -1,22 +1,18 @@
 // Template email "Permohonan Tanda Tangan Logbook".
 //
-// Desain Figma: file 1LZyWO11nj22zs2sWT9qki, node 256:284
-// "Card Permohonan Tanda Tangan". Angka layout diambil dari pengukuran node
-// Figma langsung (konversi koordinat canvas -> lokal kartu, origin 646,23):
+// Struktur mengikuti card "Reset Password Logbook Magang" (lib/email-reset-password.ts)
+// supaya kedua email punya bentuk yang sama; yang berbeda hanya gambar hero.
 //
-//   Kartu              570 x 711 px, bg #e9ecfc, radius 10
-//   Kotak putih        522 x 666.56, inset 24px kiri/kanan, mulai y=22.22
-//   Logo Tj            18.75 x 17.12 @ x=50, y=42.78
-//   "Logbook Magang TJ" Inter bold 14 @ x=68, y=42.51
-//   Line 1             y=77.63, x=24.87, w=520.96
-//   Gradient rect      522 x 191.27 @ x=24, y=77.28
-//     from rgba(31,57,225,0.15) -> 35.585% rgba(255,255,255,0.25)
-//     to   rgba(0,14,122,0.25)
-//     gambar hero      155 x 142.007 @ x=211, y=113.99 (di dalam gradient)
-//   Line 2             y=269.87
-//   Judul              x=50, y=288.84, w=478, Inter bold 30
-//   Body               x=49, y=394.14, w=478, Inter 14
-//   Tombol             gradient 5672EE -> 406FE6 -> 001192
+//   Kartu              570 px, bg #e9ecfc, radius 10
+//   Kotak putih        522 px, inset 24px, mulai 22px dari atas kartu
+//                      -> berisi SELURUH isi (logo, gradient, judul, isi, tombol)
+//   Logo Tj            19 x 17 @ padding 20px 26px
+//   Line 1             tepat di atas kotak gradient
+//   Gradient rect      522 x 191, hero image di tengahnya
+//   Judul              Inter bold 30, #001192
+//   Body               Inter 14
+//   Tombol             gradient 5672EE -> 406FE6 -> 001192 (teks saja, tanpa ikon)
+//   Link cadangan      padding 14px 49px 30px 49px
 //
 // Catatan kompatibilitas email client:
 // - Semua layout pakai <table> + inline style (Gmail/Outlook strip <style>).
@@ -24,6 +20,8 @@
 //   elemen bergradient punya `bgcolor` solid sebagai fallback.
 // - Outlook tidak paham `border-radius` pada <a>/<td> biasa, jadi tombol
 //   dibungkus <table> dengan bgcolor (area klik ikut ter-render).
+// - Gambar hero dipasang lewat <img> (bukan cuma `background-image`) karena
+//   Gmail/Outlook memblokir background-image.
 
 import { escapeEmailHtml } from "./email-template";
 
@@ -38,9 +36,16 @@ const BUTTON_SOLID = "#406fe6";
 // Garis: rgba tak didukung Outlook, jadi pakai hex setara.
 const RULE = "#c3cae8";
 
-// Gradient disalin apa adanya dari Figma.
+// Gradient hero: 3 stop warna milik card ini (berbeda dari card reset password,
+// yang memakai #8594FA/#FFFFFF/#B9BBC8). Tiap stop sudah dikalikan opacity
+// keseluruhan 25% — Figma menyimpan "opacity layer" terpisah dari opacity stop,
+// sedangkan CSS tidak punya tempat untuk itu (kalau dipasang sebagai
+// `opacity: 0.25` pada elemennya, hero image ikut pudar juga).
+//   0%   rgba(31,57,225,0.15) x25% -> rgba(31,57,225,0.0375)
+//   35.585% rgba(255,255,255,0.25) x25% -> rgba(255,255,255,0.0625)
+//   100% rgba(0,14,122,0.25)   x25% -> rgba(0,14,122,0.0625)
 const HERO_GRADIENT =
-  "linear-gradient(180deg, rgba(31,57,225,0.15) 0%, rgba(255,255,255,0.25) 35.585%, rgba(0,14,122,0.25) 100%)";
+  "linear-gradient(180deg, rgba(31,57,225,0.0375) 0%, rgba(255,255,255,0.0625) 35.585%, rgba(0,14,122,0.0625) 100%)";
 const BUTTON_GRADIENT =
   "linear-gradient(90deg, #5672ee 0%, #406fe6 50.969%, #001192 100%)";
 

@@ -8,8 +8,18 @@ import { env } from "./env";
 // Env: GMAIL_USER = alamat gmail, GMAIL_APP_PASSWORD = 16 huruf app password.
 // Sanitasi BOM/karakter tak terlihat ditangani lib/env.ts — dulu di-patch
 // inline di sini, sekarang terpusat supaya variabel lain ikut aman.
+
+// Alamat pengirim dibaca lewat satu titik ini supaya nilai env yang memuat
+// BOM/spasi nyasar tidak bocor ke header `From`. Dipanggil saat dipakai, bukan
+// disimpan sebagai konstanta modul: konstanta dievaluasi saat file di-import,
+// dan di Vercel itu terjadi saat build — waktu env belum tentu tersedia,
+// sehingga nilai kosong ikut ter-capture sampai proses restart.
+function gmailUser() {
+  return env("GMAIL_USER");
+}
+
 function getTransporter() {
-  const user = env("GMAIL_USER");
+  const user = gmailUser();
   const pass = env("GMAIL_APP_PASSWORD", { stripAllWhitespace: true });
   if (!user || !pass) {
     console.error("GMAIL_USER / GMAIL_APP_PASSWORD belum di-set di env.");
@@ -29,9 +39,10 @@ export async function sendMail(options: {
   const transporter = getTransporter();
   if (!transporter) return { success: false, error: "missing gmail env" };
   try {
-    const from =
-      process.env.EMAIL_FROM ??
-      `Logbook Magang <${process.env.GMAIL_USER}>`;
+    // `||` bukan `??`: env() mengembalikan "" (bukan undefined) saat kosong,
+    // dan string kosong dianggap nilai sah oleh `??` — akibatnya header `From`
+    // ikut kosong dan Gmail menolak kirim tanpa pesan yang jelas.
+    const from = env("EMAIL_FROM") || `Logbook Magang <${gmailUser()}>`;
     await transporter.sendMail({ from, ...options });
     return { success: true };
   } catch (error) {
